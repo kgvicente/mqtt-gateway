@@ -8,6 +8,16 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>MQTT Gateway</title>
+<script>
+(function() {
+  try {
+    var raw = sessionStorage.getItem('gateway_emqx_token') || sessionStorage.getItem('token') || localStorage.getItem('token');
+    if (raw || (location.hash && location.hash.indexOf('token=') !== -1)) {
+      document.documentElement.classList.add('authenticated');
+    }
+  } catch(_) {}
+})();
+</script>
 <script src="chart.umd.min.js"></script>
 <style>
 :root{
@@ -179,17 +189,18 @@ label input,label textarea{margin-top:4px}
 .check input{width:auto}
 
 /* ponytail: el estado visible del formulario define el layout sin otra bandera JS. */
-body:has(#login:not([hidden])){--panel:#fcfcfd;--input-bg:#f1f3f5;--text:#172027;--muted:#54616d;--border:#dce2e7;--hover:#e9edf0;--tag-bg:#f1f3f5;--login-accent:#006f65;--login-button-text:#fcfcfd;--login-selection:#c7ebe3;--red-light:#a32623}
-html[data-theme="dark"] body:has(#login:not([hidden])){--panel:#121419;--input-bg:#20242c;--text:#edf0f4;--muted:#a4afbd;--border:#303641;--hover:#292f39;--tag-bg:#20242c;--login-accent:#69d5c5;--login-button-text:#121419;--login-selection:#284f49;--red-light:#ffaca8}
-body:has(#login:not([hidden])) ::selection{background:var(--login-selection);color:var(--text)}
-body:has(#login:not([hidden])) :focus-visible{outline-color:var(--login-accent)}
+html:not(.authenticated) body:has(#login:not([hidden])){--panel:#fcfcfd;--input-bg:#f1f3f5;--text:#172027;--muted:#54616d;--border:#dce2e7;--hover:#e9edf0;--tag-bg:#f1f3f5;--login-accent:#006f65;--login-button-text:#fcfcfd;--login-selection:#c7ebe3;--red-light:#a32623}
+html[data-theme="dark"]:not(.authenticated) body:has(#login:not([hidden])){--panel:#121419;--input-bg:#20242c;--text:#edf0f4;--muted:#a4afbd;--border:#303641;--hover:#292f39;--tag-bg:#20242c;--login-accent:#69d5c5;--login-button-text:#121419;--login-selection:#284f49;--red-light:#ffaca8}
+html:not(.authenticated) body:has(#login:not([hidden])) ::selection{background:var(--login-selection);color:var(--text)}
+html:not(.authenticated) body:has(#login:not([hidden])) :focus-visible{outline-color:var(--login-accent)}
 .login .primary{background:var(--login-accent);border-color:var(--login-accent);color:var(--login-button-text)}
 .login .primary:hover{background:var(--login-accent);border-color:var(--login-accent);filter:brightness(.94)}
 .login input{caret-color:var(--login-accent)}
-body:has(#login:not([hidden])){min-height:100svh;display:flex;flex-direction:column;justify-content:center;background:var(--panel)}
-body:has(#login:not([hidden]))>main{display:grid;place-items:center;width:100%;padding:48px 24px 24px}
-body:has(#login:not([hidden]))>header{order:2;justify-content:center;height:auto;min-height:64px;padding:12px 24px 28px;background:transparent;border:0}
-body:has(#login:not([hidden]))>header .brand{display:none}
+html:not(.authenticated) body:has(#login:not([hidden])){min-height:100svh;display:flex;flex-direction:column;justify-content:center;background:var(--panel)}
+html:not(.authenticated) body:has(#login:not([hidden]))>main{display:grid;place-items:center;width:100%;padding:48px 24px 24px}
+html:not(.authenticated) body:has(#login:not([hidden]))>header{order:2;justify-content:center;height:auto;min-height:64px;padding:12px 24px 28px;background:transparent;border:0}
+html:not(.authenticated) body:has(#login:not([hidden]))>header .brand{display:none}
+html.authenticated #login{display:none!important}
 .login{width:100%;max-width:420px;margin:0 auto;padding:0}
 .login[hidden]{display:none}
 .login h1{text-align:center;font-size:clamp(36px,6vw,48px);font-weight:300;line-height:1.25;letter-spacing:-1px;margin:0 0 42px}
@@ -809,6 +820,7 @@ async function api(path, options = {}) {
 }
 
 function showLogin() {
+  document.documentElement.classList.remove('authenticated');
   loggedIn = false;
   token = '';
   sessionStorage.removeItem('gateway_emqx_token');
@@ -824,24 +836,39 @@ function showLogin() {
 
 async function enter(candidate) {
   token = candidate;
-  await api('/auth/verify');
-  sessionStorage.setItem('gateway_emqx_token', token);
-  connectStream();
-  loggedIn = true;
+  document.documentElement.classList.add('authenticated');
   $('#login').hidden = true;
   $('#workspace').hidden = false;
   $('#logout').hidden = false;
+  try {
+    await api('/auth/verify');
+  } catch (e) {
+    showLogin();
+    throw e;
+  }
+  sessionStorage.setItem('gateway_emqx_token', token);
+  connectStream();
+  loggedIn = true;
   $('#password').value = '';
   await refresh();
+}
+
+function applySnapshot(data) {
+  if (!data) return;
+  if (Array.isArray(data.routes)) routes = data.routes;
+  if (Array.isArray(data.metrics)) metrics = data.metrics;
+  if (Array.isArray(data.incidents)) incidents = data.incidents;
+  if (Array.isArray(data.logs)) logs = data.logs;
+  render();
+  $('#updated').textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-PE');
 }
 
 async function refresh() {
   if (!loggedIn || refreshing || document.hidden || document.querySelector('[aria-busy="true"]') || $('#route-dialog').open || $('#delete-confirm-dialog').open) return;
   refreshing = true;
   try {
-    [routes, metrics, incidents, logs] = await Promise.all(['/routes', '/metrics', '/incidents', '/logs'].map(p => api(p)));
-    render();
-    $('#updated').textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-PE');
+    const [r, m, i, l] = await Promise.all(['/routes', '/metrics', '/incidents', '/logs'].map(p => api(p)));
+    applySnapshot({ routes: r, metrics: m, incidents: i, logs: l });
   } catch (e) {
     notice(e.message);
   } finally {
@@ -1481,9 +1508,17 @@ function connectStream() {
   try {
     sseSource = new EventSource('/api/admin/stream?token=' + encodeURIComponent(token));
     sseSource.onmessage = (event) => {
+      if (!event.data || event.data === 'heartbeat') return;
       if (event.data === 'update') {
         refresh();
+        return;
       }
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload && (payload.routes || payload.metrics)) {
+          applySnapshot(payload);
+        }
+      } catch (_) {}
     };
     sseSource.onerror = () => {
       // Reconexión automática nativa de EventSource sobre HTTP/2

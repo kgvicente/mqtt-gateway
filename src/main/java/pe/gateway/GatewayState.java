@@ -370,14 +370,26 @@ public class GatewayState {
         notifyUpdate();
     }
 
+    public synchronized String stateSnapshotJson() {
+        ObjectNode snapshot = json.createObjectNode();
+        snapshot.set("routes", routes(false));
+        snapshot.set("metrics", metrics());
+        snapshot.set("incidents", incidents());
+        snapshot.set("logs", logs());
+        return snapshot.toString();
+    }
+
     public void notifyUpdate() {
-        try { streamBus.onNext("update"); } catch (Exception ignored) {}
+        try { streamBus.onNext(stateSnapshotJson()); } catch (Exception ignored) {}
     }
 
     public Multi<String> streamEvents() {
+        Multi<String> initial = Multi.createFrom().item(this::stateSnapshotJson);
+        Multi<String> heartbeats = Multi.createFrom().ticks().every(Duration.ofSeconds(15)).map(tick -> "heartbeat");
         return Multi.createBy().merging().streams(
+            initial,
             streamBus,
-            Multi.createFrom().ticks().every(Duration.ofSeconds(15)).map(tick -> "heartbeat")
+            heartbeats
         );
     }
 
