@@ -9,609 +9,168 @@
   <meta http-equiv="Expires" content="0">
   <title>Referencia de Integración HTTP | MQTT Gateway</title>
   <script>
-    (function() {
-      const saved = localStorage.getItem('gateway_theme') || 'system';
-      const isDark = saved === 'dark' || (saved === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-      document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    (function () {
+      let preference = 'system';
+      try { preference = localStorage.getItem('gateway_theme') || 'system'; } catch (_) {}
+      if (!['system', 'light', 'dark'].includes(preference)) preference = 'system';
+      document.documentElement.dataset.theme = preference === 'system'
+        ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : preference;
     })();
   </script>
   <style>
-    :root, html[data-theme="light"] {
+
+    :root {
       color-scheme: light;
-      --ink: #111827;
-      --muted: #4b5563;
-      --line: #e5e7eb;
-      --accent: #007a72;
-      --accent-soft: #f0fdfa;
-      --paper: #ffffff;
-      --sidebar: #f9fafb;
-      --code-bg: #f3f4f6;
-      --code-ink: #111827;
-      --th-bg: #f3f4f6;
-      --th-ink: #1f2937;
-      --td-ink: #374151;
-      --p-ink: #374151;
-      --nav-a: #374151;
-      --nav-hover: #f3f4f6;
-      --callout-bg: #f0fdfa;
-      --callout-p: #134e4a;
-      --req-yes-bg: #fee2e2;
-      --req-yes-ink: #991b1b;
-      --req-no-bg: #f3f4f6;
-      --req-no-ink: #4b5563;
-      --method-post: #15803d;
-      --method-post-bg: #dcfce7;
-      --method-get: #1d4ed8;
-      --method-get-bg: #dbeafe;
-      --header-bg: #ffffff;
+      --paper:#fcfcfd; --sidebar:#f7f8fa; --surface:#f1f3f5; --hover:#e9edf0;
+      --ink:#172027; --muted:#54616d; --line:#dce2e7; --accent:#006f65;
+      --accent-soft:#e9f5f2; --code-ink:#263c49; --code-bg:#eef1f4;
+      --code-panel:#f5f7f9; --danger:#a32623; --selection:#c7ebe3;
+      --header-height:60px; --sidebar-width:238px; --scroll-offset:100px;
     }
     html[data-theme="dark"] {
-      color-scheme: dark;
-      --ink: #f0f2f5;
-      --muted: #9aa0aa;
-      --line: #2d303a;
-      --accent: #00BFB3;
-      --accent-soft: rgba(0, 191, 179, 0.14);
-      --paper: #111215;
-      --sidebar: #18191e;
-      --code-bg: #21232a;
-      --code-ink: #e5e7eb;
-      --th-bg: #21232a;
-      --th-ink: #f0f2f5;
-      --td-ink: #d1d5db;
-      --p-ink: #d1d5db;
-      --nav-a: #9aa0aa;
-      --nav-hover: #21232a;
-      --callout-bg: rgba(0, 191, 179, 0.08);
-      --callout-p: #5eead4;
-      --req-yes-bg: rgba(220, 38, 38, 0.22);
-      --req-yes-ink: #fca5a5;
-      --req-no-bg: #21232a;
-      --req-no-ink: #9aa0aa;
-      --method-post: #4ade80;
-      --method-post-bg: rgba(34, 197, 94, 0.15);
-      --method-get: #60a5fa;
-      --method-get-bg: rgba(59, 130, 246, 0.15);
-      --header-bg: #18191e;
-    }
-    * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; scroll-padding-top: 80px; }
-    body {
-      margin: 0;
-      background: var(--paper);
-      color: var(--ink);
-      font: 15px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
-      transition: background .2s ease, color .2s ease;
-    }
-    header {
-      height: 64px;
-      border-bottom: 1px solid var(--line);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 32px;
-      position: sticky;
-      top: 0;
-      background: var(--header-bg);
-      z-index: 10;
-      transition: background .2s ease, border-color .2s ease;
-    }
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .header-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: transparent;
-      color: var(--muted);
-      border: 1px solid var(--line);
-      padding: 6px 12px;
-      border-radius: 4px;
-      font-size: 13px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background .15s, color .15s, border-color .15s;
-    }
-    .header-btn:hover {
-      background: var(--sidebar);
-      color: var(--ink);
-    }
-    .brand {
-      font-size: 18px;
-      font-weight: 700;
-      color: var(--ink);
-      text-decoration: none;
-      letter-spacing: -0.3px;
-    }
-    .header-subtitle {
-      color: var(--muted);
-      border-left: 1px solid var(--line);
-      padding-left: 16px;
-      font-size: 14px;
-    }
-    .header-link {
-      font-size: 13px;
-      color: var(--muted);
-      text-decoration: none;
-      font-weight: 500;
-      padding: 6px 12px;
-      border: 1px solid var(--line);
-      border-radius: 4px;
-      transition: background .15s ease, color .15s ease;
-    }
-    .header-link:hover {
-      background: var(--sidebar);
-      color: var(--ink);
-    }
-    nav {
-      position: fixed;
-      top: 64px;
-      bottom: 0;
-      width: 280px;
-      background: var(--sidebar);
-      border-right: 1px solid var(--line);
-      padding: 28px 16px;
-      overflow-y: auto;
-      transition: background .2s ease, border-color .2s ease;
-    }
-    nav strong {
-      display: block;
-      margin: 0 12px 10px;
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      color: var(--muted);
-    }
-    nav a {
-      display: block;
-      padding: 8px 12px;
-      color: var(--nav-a);
-      text-decoration: none;
-      border-left: 2px solid transparent;
-      font-size: 14px;
-      border-radius: 0 4px 4px 0;
-      transition: background .15s, color .15s, border-color .15s;
-    }
-    nav a:hover {
-      background: var(--nav-hover);
-      color: var(--ink);
-    }
-    nav a.active {
-      background: var(--accent-soft);
-      border-left-color: var(--accent);
-      color: var(--accent);
-      font-weight: 600;
-    }
-    main {
-      margin-left: 280px;
-      max-width: 980px;
-      padding: 40px 56px 100px;
-      min-width: 0;
-    }
-    .crumb {
-      font-size: 13px;
-      color: var(--muted);
-      margin-bottom: 8px;
-    }
-    h1 {
-      font-size: 38px;
-      line-height: 1.15;
-      letter-spacing: -1.2px;
-      margin: 0 0 16px;
-      font-weight: 700;
-      color: var(--ink);
-    }
-    h2 {
-      font-size: 24px;
-      line-height: 1.3;
-      letter-spacing: -0.4px;
-      margin: 0 0 16px;
-      font-weight: 600;
-      color: var(--ink);
-    }
-    h3 {
-      font-size: 16px;
-      margin: 24px 0 12px;
-      font-weight: 600;
-      color: var(--ink);
-    }
-    p {
-      max-width: 76ch;
-      margin: 12px 0;
-      color: var(--p-ink);
-      font-size: 15px;
-    }
-    .lead {
-      font-size: 18px;
-      line-height: 1.5;
-      color: var(--muted);
-      margin-bottom: 24px;
-    }
-    section {
-      padding: 36px 0;
-      border-bottom: 1px solid var(--line);
-    }
-    section:first-of-type {
-      padding-top: 0;
-    }
-    section:last-of-type {
-      border-bottom: 0;
-    }
-    code {
-      font: 13px/1.5 Consolas, "Liberation Mono", Menlo, Courier, monospace;
-      background: var(--code-bg);
-      padding: 2px 6px;
-      border-radius: 4px;
-      color: var(--code-ink);
-      overflow-wrap: anywhere;
-    }
-    .endpoint {
-      display: flex;
-      gap: 12px;
-      align-items: center;
-      margin: 16px 0 20px;
-    }
-    .method {
-      font-size: 12px;
-      font-weight: 700;
-      padding: 3px 8px;
-      border-radius: 4px;
-      letter-spacing: 0.5px;
-    }
-    .method.post {
-      color: var(--method-post);
-      background: var(--method-post-bg);
-    }
-    .method.get {
-      color: var(--method-get);
-      background: var(--method-get-bg);
-    }
-    .endpoint code {
-      font-size: 15px;
-      font-weight: 600;
-      background: transparent;
-      padding: 0;
-    }
-    .callout {
-      border: 1px solid var(--line);
-      background: var(--callout-bg);
-      padding: 16px 20px;
-      margin: 20px 0;
-      border-radius: 8px;
-    }
-    .callout p {
-      margin: 0;
-      color: var(--callout-p);
-      font-size: 14px;
-    }
-    .table-container {
-      margin: 20px 0 28px;
-      overflow-x: auto;
-    }
-    table {
-      border-collapse: separate;
-      border-spacing: 0;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      overflow: hidden;
-      width: 100%;
-      font-size: 14px;
-      text-align: left;
-    }
-    th {
-      background: var(--th-bg);
-      font-weight: 600;
-      color: var(--th-ink);
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--line);
-    }
-    td {
-      padding: 11px 14px;
-      border-bottom: 1px solid var(--line);
-      vertical-align: top;
-      color: var(--td-ink);
-    }
-    tr:last-child td {
-      border-bottom: 0;
-    }
-    .req-yes {
-      display: inline-block;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--req-yes-ink);
-      background: var(--req-yes-bg);
-      padding: 1px 6px;
-      border-radius: 3px;
-    }
-    .req-no {
-      display: inline-block;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--req-no-ink);
-      background: var(--req-no-bg);
-      padding: 1px 6px;
-      border-radius: 3px;
-    }
-    footer {
-      color: var(--muted);
-      font-size: 13px;
-      padding-top: 32px;
-      border-top: 1px solid var(--line);
-      margin-top: 40px;
-    }
-    .skip-nav {
-      position: fixed;
-      top: -40px;
-      left: 16px;
-      background: var(--ink);
-      color: #ffffff;
-      padding: 8px 14px;
-      border-radius: 4px;
-      font-size: 13px;
-      z-index: 100;
-      text-decoration: none;
-      transition: top .2s ease;
-    }
-    .skip-nav:focus {
-      top: 12px;
-    }
-    @media (max-width: 860px) {
-      header {
-        padding: 0 16px;
-      }
-      nav {
-        position: static;
-        width: 100%;
-        border-right: 0;
-        border-bottom: 1px solid var(--line);
-        padding: 16px;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 4px;
-      }
-      nav strong {
-        grid-column: 1 / -1;
-        margin: 0 8px 6px;
-      }
-      main {
-        margin-left: 0;
-        padding: 28px 18px 60px;
-      }
-      h1 {
-        font-size: 30px;
-      }
-      h2 {
-        font-size: 22px;
-      }
-    }
-    @media (max-width: 640px) {
-      .header-subtitle {
-        display: none;
-      }
-      header {
-        padding: 0 12px;
-      }
-      nav {
-        grid-template-columns: 1fr;
-      }
-      main {
-        min-width: 0;
-        max-width: 100%;
-        overflow-x: hidden;
-      }
-      .table-container {
-        max-width: 100%;
-      }
-      .prompt-header-btn .prompt-btn-text {
-        display: none;
-      }
-      .prompt-header-btn {
-        padding: 6px 8px;
-      }
-      .agent-card-header {
-        flex-direction: column;
-        align-items: stretch;
-      }
-      .agent-card {
-        padding: 16px 14px;
-        margin: 20px 0;
-      }
-      .copy-prompt-btn {
-        justify-content: center;
-      }
-      .agent-card-footer {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 6px;
-      }
-    }
-
-    /* Estilos de Integración con Agentes de IA (Agent-First) */
-    .prompt-header-btn {
-      color: var(--accent);
-      border-color: var(--accent);
-    }
-    .prompt-header-btn:hover {
-      background: var(--accent-soft);
-      color: var(--accent);
-    }
-    .prompt-header-btn.copied {
-      background: #16a34a !important;
-      color: #ffffff !important;
-      border-color: #16a34a !important;
-    }
-    .agent-card {
-      margin: 28px 0 36px;
-      background: var(--sidebar);
-      border: 1px solid var(--line);
-      border-left: 4px solid var(--accent);
-      border-radius: 8px;
-      padding: 22px 24px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-      transition: background .2s ease, border-color .2s ease;
-    }
-    .agent-card-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 10px;
-    }
-    .agent-card-title {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--ink);
-    }
-    .agent-badge {
-      font-size: 11px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      padding: 2px 8px;
-      border-radius: 999px;
-      background: var(--accent-soft);
-      color: var(--accent);
-      border: 1px solid var(--accent);
-    }
-    .agent-card-desc {
-      margin: 0 0 14px;
-      font-size: 14px;
-      color: var(--p-ink);
-      line-height: 1.55;
-    }
-    .agent-tabs {
-      display: flex;
-      gap: 6px;
-      margin-bottom: 12px;
-      border-bottom: 1px solid var(--line);
-      padding-bottom: 8px;
-      overflow-x: auto;
-    }
-    .agent-tab-btn {
-      background: transparent;
-      border: 1px solid transparent;
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 500;
-      padding: 5px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      transition: background .15s, color .15s, border-color .15s;
-      white-space: nowrap;
-    }
-    .agent-tab-btn:hover {
-      color: var(--ink);
-      background: var(--nav-hover);
-    }
-    .agent-tab-btn.active {
-      color: var(--accent);
-      background: var(--accent-soft);
-      border-color: var(--line);
-      font-weight: 600;
-    }
-    .agent-prompt-wrapper {
-      position: relative;
-    }
-    .agent-prompt-box {
-      margin: 0;
-      background: var(--code-bg);
-      border: 1px solid var(--line);
-      border-radius: 6px;
-      padding: 14px 16px;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      font-size: 13px;
-      line-height: 1.55;
-      color: var(--code-ink);
-      white-space: pre-wrap;
-      word-break: break-word;
-      user-select: all;
-    }
-    .copy-prompt-btn {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      background: var(--accent);
-      color: #ffffff;
-      border: 1px solid transparent;
-      padding: 6px 14px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: background 0.15s ease, transform 0.1s ease, color 0.15s ease;
-      white-space: nowrap;
-    }
-    html[data-theme="dark"] .copy-prompt-btn {
-      color: #111215;
-    }
-    .copy-prompt-btn:hover {
-      filter: brightness(1.1);
-      transform: translateY(-1px);
-    }
-    .copy-prompt-btn:active {
-      transform: translateY(0);
-    }
-    .copy-prompt-btn.copied {
-      background: #16a34a !important;
-      color: #ffffff !important;
-    }
-    .agent-card-footer {
-      margin-top: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      font-size: 12px;
-      color: var(--muted);
-      flex-wrap: wrap;
-    }
-    .agent-card-footer a {
-      color: var(--accent);
-      text-decoration: none;
-      font-weight: 500;
-    }
-    .agent-card-footer a:hover {
-      text-decoration: underline;
-    }
+      color-scheme:dark;
+      --paper:#121419; --sidebar:#171a20; --surface:#20242c; --hover:#292f39;
+      --ink:#edf0f4; --muted:#a4afbd; --line:#303641; --accent:#69d5c5;
+      --accent-soft:#1b3431; --code-ink:#d7e6ee; --code-bg:#252b35;
+      --code-panel:#191d24; --danger:#ffaca8; --selection:#284f49;
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth;scroll-padding-top:var(--scroll-offset);scrollbar-color:var(--line) var(--paper)}
+    body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.75 "Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+    ::selection{background:var(--selection);color:var(--ink)}
+    button,select{font:inherit;color:inherit;caret-color:var(--accent)}
+    button{cursor:pointer}
+    a{color:var(--accent);text-underline-offset:3px;text-decoration-thickness:1px}
+    a:hover{text-decoration-color:currentColor}
+    :focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+    [hidden]{display:none!important}
+    .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+    header{height:var(--header-height);position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:0 24px;background:#fff;border-bottom:1px solid #D3DAE6;font:14px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#1A1C21;--nav-muted:#535B69;--nav-border:#D3DAE6;--nav-tag:#F0F3F7;--nav-panel:#fff;--nav-hover:#EDF1F7}
+    html[data-theme="dark"] header{background:#18191E;border-color:#343741;color:#DFE5EF;--nav-muted:#98A2B3;--nav-border:#343741;--nav-tag:#18191E;--nav-panel:#25272F;--nav-hover:#343741}
+    .brand{display:flex;align-items:center;gap:10px;color:inherit;font-size:16px;font-weight:600;letter-spacing:-.2px;text-decoration:none;white-space:nowrap}
+    .brand>svg{color:#00BFB3;width:24px;height:24px}
+    .header-actions{display:flex;gap:10px;align-items:center}
+    header svg{width:16px;height:16px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+    .panel-link{display:inline-flex;align-items:center;font-size:12px;color:var(--nav-muted);text-decoration:none;padding:4px 9px;border:1px solid var(--nav-border);border-radius:5px;font-weight:550}
+    .panel-link:hover{background:var(--nav-hover)}
+    .theme-switch{display:inline-flex;background:var(--nav-tag);border:1px solid var(--nav-border);border-radius:5px;padding:2px;gap:2px}
+    .theme-switch button{display:inline-flex;align-items:center;justify-content:center;border:0;border-radius:3px;background:transparent;color:var(--nav-muted);padding:4px;width:28px;height:26px}
+    .theme-switch button:hover{background:var(--nav-hover);color:inherit}
+    .theme-switch button.active{background:var(--nav-panel);color:inherit;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+    .docs-sidebar{position:fixed;top:var(--header-height);bottom:0;left:0;width:var(--sidebar-width);padding:26px 15px;background:var(--sidebar);border-right:1px solid var(--line);overflow-y:auto}
+    .docs-sidebar summary{display:none}
+    #docs-nav strong{display:block;margin:0 12px 13px;color:var(--muted);font-size:12px;font-weight:600}
+    #docs-nav a{display:block;padding:8px 11px;margin:2px 0;border-left:1px solid transparent;border-radius:0 5px 5px 0;color:var(--muted);font-size:13px;line-height:1.55;text-decoration:none}
+    #docs-nav a:hover{background:var(--surface);color:var(--ink)}
+    #docs-nav a.active{background:var(--accent-soft);color:var(--accent);border-left-color:var(--accent);font-weight:600}
+    main{margin-left:var(--sidebar-width);width:calc(100% - var(--sidebar-width));max-width:1080px;min-width:0;padding:43px 56px 64px}
+    h1,h2,h3{color:var(--ink);text-wrap:balance}
+    h1{max-width:25ch;margin:0 0 18px;font-size:clamp(32px,3.1vw,44px);font-weight:680;line-height:1.15;letter-spacing:-.035em}
+    h2{margin:0 0 18px;font-size:25px;font-weight:650;line-height:1.3;letter-spacing:-.02em}
+    h3{margin:32px 0 12px;font-size:18px;font-weight:620;line-height:1.45;letter-spacing:-.015em}
+    p{margin:12px 0;color:var(--ink)}
+    .lead{max-width:66ch;margin:0 0 22px;color:var(--muted);font-size:18px;line-height:1.65}
+    section{padding:40px 0;border-bottom:1px solid var(--line)}
+    section:first-of-type{padding-top:0}
+    section:last-of-type{border-bottom:0}
+    code{font:13px/1.6 Consolas,"Liberation Mono",monospace;background:var(--code-bg);padding:2px 5px;border-radius:4px;color:var(--code-ink);overflow-wrap:anywhere}
+    .endpoint{display:flex;align-items:center;gap:12px;margin:15px 0 23px;padding:12px 15px;background:var(--surface);border:1px solid var(--line);border-radius:6px}
+    .endpoint code{padding:0;background:none;font-size:14px;font-weight:600}
+    .method{padding:2px 7px;border-radius:4px;font-size:11px;font-weight:700;line-height:1.7}
+    .method.post{background:var(--accent-soft);color:var(--accent)}
+    .method.get{background:var(--code-bg);color:var(--code-ink)}
+    .callout{margin:24px 0 0;padding:16px 19px;background:var(--accent-soft);border:1px solid var(--line);border-radius:6px}
+    .callout p{margin:0;font-size:14px;line-height:1.75}
+    .table-container{width:100%;max-width:100%;overflow:auto;margin:20px 0 8px;scrollbar-color:var(--muted) var(--surface)}
+    table{width:100%;min-width:630px;border-collapse:collapse;border-spacing:0;font-size:13px;line-height:1.7;text-align:left;font-variant-numeric:tabular-nums;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+    th{padding:11px 15px;background:var(--surface);color:var(--ink);font-size:12px;font-weight:650;border-bottom:1px solid var(--line);vertical-align:top}
+    td{padding:13px 15px;border-bottom:1px solid var(--line);vertical-align:top}
+    tbody tr:last-child td{border-bottom:0}
+    td:first-child{font-weight:500}
+    td code{font-size:12px}
+    .headers-table td:first-child{white-space:nowrap}
+    .headers-table th:first-child{width:24%}
+    .headers-table th:nth-child(2){width:11%}
+    .headers-table th:nth-child(3){width:18%}
+    .req-yes,.req-no{display:inline-block;padding:2px 6px;background:var(--surface);border-radius:3px;font-size:11px;line-height:1.5}
+    .req-yes{color:var(--ink);font-weight:600}
+    .req-no{color:var(--muted)}
+    .table-note{margin:5px 0 20px;color:var(--muted);font-size:12px}
+    .code-block{margin:15px 0 25px;border:1px solid var(--line);border-radius:7px;background:var(--code-panel);overflow:hidden}
+    .code-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:7px 12px 7px 16px;border-bottom:1px solid var(--line);color:var(--muted);font-size:12px}
+    .copy-code{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:82px;min-height:32px;padding:4px 8px;border:1px solid transparent;border-radius:4px;background:none;color:var(--muted);font-size:12px}
+    .copy-code:hover{background:var(--surface);border-color:var(--line);color:var(--ink)}
+    .copy-code svg{width:14px;height:14px;flex-shrink:0}
+    pre{margin:0;padding:17px 19px;overflow:auto;scrollbar-color:var(--muted) var(--code-panel)}
+    pre code{display:block;background:none;padding:0;border-radius:0;font-size:12.5px;line-height:1.8;white-space:pre;overflow-wrap:normal;tab-size:2}
+    .agent-hero-group{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:22px 0 28px}
+    .cf-prompt-btn,.cf-ghost-btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;border:1px solid var(--line);border-radius:999px;background:var(--paper);color:var(--ink);font-size:14px;font-weight:550;text-decoration:none}
+    .cf-prompt-btn{position:relative;gap:12px;padding:0 16px;white-space:nowrap}
+    .cf-prompt-btn:hover,.cf-ghost-btn:hover{background:var(--surface);border-color:var(--muted)}
+    .cf-prompt-btn:disabled{cursor:wait;opacity:.7}
+    .cf-icon-cluster{display:flex;align-items:center;gap:3px;flex:none}
+    .agent-mark{display:grid;place-items:center;width:20px;height:22px;flex:none}
+    .agent-mark svg{display:block;flex:none;overflow:visible}
+    .agent-mark .claude{width:20px;height:20px}
+    .agent-mark .codex{width:18px;height:18px}
+    .agent-mark .cursor{width:18px;height:20px}
+    .agent-mark .terminal{width:16px;height:18px}
+    .cf-btn-label{min-width:118px;text-align:left}
+    .cf-prompt-btn.copy-error{border-color:var(--danger);color:var(--danger)}
+    .cf-ghost-btn{gap:7px;padding:0 15px;color:var(--muted);font-size:13px}
+    .cf-ghost-btn svg{width:13px;height:13px}
+    footer{margin-top:20px;padding-top:24px;border-top:1px solid var(--line);color:var(--muted);font-size:12px;line-height:1.8}
+    footer small{display:block;margin-top:9px;font-size:12px}
+    .skip-nav{position:fixed;top:-100px;left:14px;z-index:100;padding:9px 15px;background:var(--ink);color:var(--paper);border-radius:5px;text-decoration:none}
+    .skip-nav:focus{top:10px}
+    @media(min-width:1600px){main{margin-left:calc(var(--sidebar-width) + (100vw - var(--sidebar-width) - 1080px)/2)}}
+    @media(max-width:1100px){main{padding:34px 32px 60px}}
+    @media(max-width:850px){
+      :root{--scroll-offset:133px}
+      header{padding:0 12px}
+      .docs-sidebar{position:sticky;z-index:20;top:var(--header-height);bottom:auto;width:100%;padding:0 20px;border-right:0;border-bottom:1px solid var(--line);background:var(--paper);overflow:visible}
+      .docs-sidebar summary{display:flex;align-items:center;justify-content:space-between;min-height:48px;cursor:pointer;color:var(--muted);font-size:13px;list-style:none}
+      .docs-sidebar summary::-webkit-details-marker{display:none}
+      .docs-sidebar summary svg{width:15px;height:15px}
+      .docs-sidebar details[open] summary svg{transform:rotate(180deg)}
+      #docs-nav{display:grid;grid-template-columns:1fr 1fr;gap:2px 12px;padding:0 0 12px;max-height:60svh;overflow:auto}
+      #docs-nav strong{display:none}
+      #docs-nav a{padding:9px 11px;margin:0}
+      main{margin:0 auto;width:100%;max-width:940px;padding:30px 24px 48px}
+      h1{font-size:36px;max-width:25ch}
+    }
+    @media(max-width:480px){
+      header{padding:0 12px;gap:8px}.header-actions{gap:6px}
+      .brand{font-size:14px;gap:8px}
+      .docs-sidebar{padding:0 18px}#docs-nav{grid-template-columns:1fr}
+      main{padding:26px 18px 42px}h1{font-size:32px;max-width:22ch}h2{font-size:23px}
+      .lead{font-size:16px}section{padding:32px 0}.endpoint{padding:11px 13px}
+      .agent-hero-group{gap:9px}.cf-prompt-btn{font-size:13px;padding:0 13px;gap:9px}.cf-btn-label{min-width:110px}
+      .cf-ghost-btn{padding:0 13px}
+      .callout{padding:14px 15px}pre{padding:15px}pre code{font-size:12px}
+    }
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation:none!important;transition:none!important}}
   </style>
 </head>
 <body>
   <a class="skip-nav" href="#contenido">Saltar al contenido</a>
 
   <header>
-    <div class="header-left">
-      <a class="brand" href="#introduccion">MQTT Gateway</a>
-      <span class="header-subtitle">Documentación para Desarrolladores</span>
-    </div>
-    <div class="header-right">
-      <button type="button" id="header-copy-prompt-btn" class="header-btn prompt-header-btn" title="Copiar prompt para asistentes de IA (Cursor, Claude, Copilot)">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-        </svg>
-        <span class="prompt-btn-text">Copiar Prompt IA</span>
-      </button>
-      <button type="button" id="theme-toggle" class="header-btn" title="Alternar tema">
-        <svg id="theme-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></svg>
-        <span id="theme-label">Tema</span>
-      </button>
-      <a class="header-link" href="/gateway/">Panel de Control</a>
+    <a class="brand" href="#introduccion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7 12 2l9 5v10l-9 5-9-5Z"/><path d="m3 7 9 5 9-5M12 12v10"/></svg>MQTT Gateway</a>
+    <div class="header-actions">
+      <a class="panel-link" href="/gateway/">Panel</a>
+      <div class="theme-switch" role="group" aria-label="Tema visual">
+        <button type="button" id="theme-light" data-val="light" title="Modo claro" aria-label="Modo claro"></button>
+        <button type="button" id="theme-dark" data-val="dark" title="Modo oscuro" aria-label="Modo oscuro"></button>
+        <button type="button" id="theme-system" data-val="system" title="Tema del sistema" aria-label="Tema del sistema"></button>
+      </div>
     </div>
   </header>
 
-  <nav aria-label="Tabla de contenidos">
-    <strong>Especificación HTTP</strong>
+  <aside class="docs-sidebar">
+    <details id="contents-menu" open>
+      <summary>Contenido de esta guía<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></summary>
+      <nav id="docs-nav" aria-label="Tabla de contenidos">
     <a href="#introduccion" class="active">Introducción</a>
     <a href="#adaptadores">Adaptadores MQTT</a>
     <a href="#admin">Acceso al panel</a>
@@ -620,61 +179,40 @@
     <a href="#health">Sondeo de salud (/health)</a>
     <a href="#api-key">Cabecera X-EMQX-API-KEY</a>
     <a href="#codigos-error">Códigos de error y fallos</a>
-  </nav>
+      </nav>
+    </details>
+  </aside>
 
   <main id="contenido">
     <section id="introduccion">
-      <div class="crumb">MQTT Gateway / Referencia de Integración</div>
       <h1>Conecta tu bróker MQTT con tu backend</h1>
       <p class="lead">Especificación contractual de endpoints HTTP requeridos para delegar la autenticación de clientes MQTT, la autorización de tópicos y el sondeo continuo de disponibilidad.</p>
+
+      <div class="agent-hero-group">
+        <button type="button" class="cf-prompt-btn" id="copy-agent-prompt-btn" aria-label="Copiar prompt de integración para agentes de IA" title="Copiar prompt para Claude, OpenAI Codex, Cursor y OpenCode">
+          <span class="cf-icon-cluster" aria-hidden="true">
+            <!-- Símbolos de referencia: developers.cloudflare.com/icons/agents/. -->
+            <span class="agent-mark"><svg class="claude" width="20" height="20" viewBox="0 0 256 257" aria-hidden="true" focusable="false"><title>Claude · Anthropic</title><path d="m50.228 170.321 50.357-28.257.843-2.463-.843-1.361h-2.462l-8.426-.518-28.775-.778-24.952-1.037-24.175-1.296-6.092-1.297L0 125.796l.583-3.759 5.12-3.434 7.324.648 16.202 1.101 24.304 1.685 17.629 1.037 26.118 2.722h4.148l.583-1.685-1.426-1.037-1.101-1.037-25.147-17.045-27.22-18.017-14.258-10.37-7.713-5.25-3.888-4.925-1.685-10.758 7-7.713 9.397.649 2.398.648 9.527 7.323 20.35 15.75L94.817 91.9l3.889 3.24 1.555-1.102.195-.777-1.75-2.917-14.453-26.118-15.425-26.572-6.87-11.018-1.814-6.61c-.648-2.723-1.102-4.991-1.102-7.778l7.972-10.823L71.42 0 82.05 1.426l4.472 3.888 6.61 15.101 10.694 23.786 16.591 32.34 4.861 9.592 2.592 8.879.973 2.722h1.685v-1.556l1.36-18.211 2.528-22.36 2.463-28.776.843-8.1 4.018-9.722 7.971-5.25 6.222 2.981 5.12 7.324-.713 4.73-3.046 19.768-5.962 30.98-3.889 20.739h2.268l2.593-2.593 10.499-13.934 17.628-22.036 7.778-8.749 9.073-9.657 5.833-4.601h11.018l8.1 12.055-3.628 12.443-11.342 14.388-9.398 12.184-13.48 18.147-8.426 14.518.778 1.166 2.01-.194 30.46-6.481 16.462-2.982 19.637-3.37 8.88 4.148.971 4.213-3.5 8.62-20.998 5.184-24.628 4.926-36.682 8.685-.454.324.519.648 16.526 1.555 7.065.389h17.304l32.21 2.398 8.426 5.574 5.055 6.805-.843 5.184-12.962 6.611-17.498-4.148-40.83-9.721-14-3.5h-1.944v1.167l11.666 11.406 21.387 19.314 26.767 24.887 1.36 6.157-3.434 4.86-3.63-.518-23.526-17.693-9.073-7.972-20.545-17.304h-1.36v1.814l4.73 6.935 25.017 37.59 1.296 11.536-1.814 3.76-6.481 2.268-7.13-1.297-14.647-20.544-15.1-23.138-12.185-20.739-1.49.843-7.194 77.448-3.37 3.953-7.778 2.981-6.48-4.925-3.436-7.972 3.435-15.749 4.148-20.544 3.37-16.333 3.046-20.285 1.815-6.74-.13-.454-1.49.194-15.295 20.999-23.267 31.433-18.406 19.702-4.407 1.75-7.648-3.954.713-7.064 4.277-6.286 25.47-32.405 15.36-20.092 9.917-11.6-.065-1.686h-.583L44.07 198.125l-12.055 1.555-5.185-4.86.648-7.972 2.463-2.593 20.35-13.999-.064.065Z" fill="#D97757"/></svg></span>
+            <span class="agent-mark"><svg class="codex" width="20" height="20" viewBox="0 0 24 24" fill-rule="evenodd" aria-hidden="true" focusable="false"><title>OpenAI Codex</title><path d="M8.086.457a6.105 6.105 0 013.046-.415c1.333.153 2.521.72 3.564 1.7a.117.117 0 00.107.029c1.408-.346 2.762-.224 4.061.366l.063.03.154.076c1.357.703 2.33 1.77 2.918 3.198.278.679.418 1.388.421 2.126a5.655 5.655 0 01-.18 1.631.167.167 0 00.04.155 5.982 5.982 0 011.578 2.891c.385 1.901-.01 3.615-1.183 5.14l-.182.22a6.063 6.063 0 01-2.934 1.851.162.162 0 00-.108.102c-.255.736-.511 1.364-.987 1.992-1.199 1.582-2.962 2.462-4.948 2.451-1.583-.008-2.986-.587-4.21-1.736a.145.145 0 00-.14-.032c-.518.167-1.04.191-1.604.185a5.924 5.924 0 01-2.595-.622 6.058 6.058 0 01-2.146-1.781c-.203-.269-.404-.522-.551-.821a7.74 7.74 0 01-.495-1.283 6.11 6.11 0 01-.017-3.064.166.166 0 00.008-.074.115.115 0 00-.037-.064 5.958 5.958 0 01-1.38-2.202 5.196 5.196 0 01-.333-1.589 6.915 6.915 0 01.188-2.132c.45-1.484 1.309-2.648 2.577-3.493.282-.188.55-.334.802-.438.286-.12.573-.22.861-.304a.129.129 0 00.087-.087A6.016 6.016 0 015.635 2.31C6.315 1.464 7.132.846 8.086.457zm-.804 7.85a.848.848 0 00-1.473.842l1.694 2.965-1.688 2.848a.849.849 0 001.46.864l1.94-3.272a.849.849 0 00.007-.854l-1.94-3.393zm5.446 6.24a.849.849 0 000 1.695h4.848a.849.849 0 000-1.696h-4.848z" clip-rule="evenodd" fill="currentColor"/></svg></span>
+            <span class="agent-mark"><svg class="cursor" width="20" height="20" viewBox="0 0 466.73 532.09" aria-hidden="true" focusable="false"><title>Cursor</title><path d="M457.43,125.94L244.42,2.96c-6.84-3.95-15.28-3.95-22.12,0L9.3,125.94c-5.75,3.32-9.3,9.46-9.3,16.11v247.99c0,6.65,3.55,12.79,9.3,16.11l213.01,122.98c6.84,3.95,15.28,3.95,22.12,0l213.01-122.98c5.75-3.32,9.3-9.46,9.3-16.11v-247.99c0-6.65-3.55-12.79-9.3-16.11h-.01ZM444.05,151.99l-205.63,356.16c-1.39,2.4-5.06,1.42-5.06-1.36v-233.21c0-4.66-2.49-8.97-6.53-11.31L24.87,145.67c-2.4-1.39-1.42-5.06,1.36-5.06h411.26c5.84,0,9.49,6.33,6.57,11.39h-.01Z" fill="currentColor"/></svg></span>
+            <span class="agent-mark"><svg class="terminal" width="20" height="20" viewBox="96 64 320 384" aria-hidden="true" focusable="false"><title>OpenCode</title><path d="M320 224V352H192V224H320Z" fill="currentColor" opacity=".18"/><path d="M384 416H128V96H384V416ZM320 160H192V352H320V160Z" fill-rule="evenodd" clip-rule="evenodd" fill="currentColor"/></svg></span>
+          </span>
+          <span class="cf-btn-label">Copiar prompt</span>
+        </button>
+
+        <a href="/gateway/llms.txt" target="_blank" rel="noopener" class="cf-ghost-btn">
+          <span>llms.txt</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+        </a>
+      </div>
       <p>MQTT Gateway actúa como un proxy inverso de alta velocidad y baja latencia que desacopla EMQX, Mosquitto, VerneMQ y otros brókers de los sistemas y microservicios de backend (IoT Core Service, Device Gateway, Telemetry Service y servicios futuros). Cuando un cliente MQTT se conecta o intenta publicar/suscribirse, el gateway enruta la decisión al backend correspondiente.</p>
       <p>Esta documentación es pública y accesible en <code>/gateway/docs</code> sin necesidad de credenciales ni token administrativo.</p>
 
-      <div class="agent-card" id="agent-setup">
-        <div class="agent-card-header">
-          <div class="agent-card-title">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent)">
-              <rect x="3" y="11" width="18" height="10" rx="2"></rect>
-              <circle cx="12" cy="5" r="2"></circle>
-              <path d="M12 7v4"></path>
-              <line x1="8" y1="16" x2="8" y2="16"></line>
-              <line x1="16" y1="16" x2="16" y2="16"></line>
-            </svg>
-            <span>Desarrollo con Agentes de IA</span>
-            <span class="agent-badge">Agent-First</span>
-          </div>
-          <button type="button" class="copy-prompt-btn" id="card-copy-prompt-btn" title="Copiar prompt al portapapeles">
-            <svg class="copy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-            </svg>
-            <span class="copy-label">Copiar Prompt</span>
-          </button>
-        </div>
-        <p class="agent-card-desc">Copia este prompt en <strong>Cursor</strong>, <strong>Claude Code</strong>, <strong>Copilot</strong> o <strong>ChatGPT</strong> para que tu asistente lea la especificación e implemente o conecte tus servicios automáticamente.</p>
-        <div class="agent-tabs" role="tablist">
-          <button type="button" class="agent-tab-btn active" role="tab" aria-selected="true" data-tab="backend">Implementar Backend HTTP</button>
-          <button type="button" class="agent-tab-btn" role="tab" aria-selected="false" data-tab="broker">Configurar Bróker MQTT</button>
-          <button type="button" class="agent-tab-btn" role="tab" aria-selected="false" data-tab="quickstart">Onboarding Rápido</button>
-        </div>
-        <div class="agent-prompt-wrapper">
-          <pre class="agent-prompt-box" id="agent-prompt-content" tabindex="0">Ayúdame a crear e implementar un servicio de backend HTTP para integrarlo con MQTT Gateway. Lee primero la especificación técnica en https://raw.githubusercontent.com/kgvicente/mqtt-gateway/main/docs/llms.txt (o en el endpoint local /gateway/llms.txt y /gateway/docs.md).
-El servicio debe implementar:
-1. POST /auth: Recibe {"clientid", "username", "password"} y responde HTTP 200 con {"result": "allow"} o {"result": "deny"}.
-2. POST /acl: Recibe {"clientid", "username", "topic", "action": "publish" | "subscribe"} y responde HTTP 200 con {"result": "allow"} o {"result": "deny"}.
-3. GET /health: Sondeo de disponibilidad rápido (debe responder HTTP 200 en &lt; 2000ms).
-4. Seguridad: Validar la cabecera opcional X-EMQX-API-KEY si está configurada.
-Guíame paso a paso con el código y las pruebas.</pre>
-        </div>
-        <div class="agent-card-footer">
-          <span>Los agentes de código pueden consumir directamente la versión Markdown mediante la cabecera <code>Accept: text/markdown</code>.</span>
-          <span>Archivos para agentes: <a href="/gateway/llms.txt" target="_blank" rel="noopener">llms.txt</a> · <a href="/gateway/docs.md" target="_blank" rel="noopener">docs.md</a></span>
-        </div>
-      </div>
+
 
       <h2>Cabeceras estándar en solicitudes salientes</h2>
       <div class="table-container">
-        <table>
+        <table class="headers-table">
           <thead>
             <tr>
               <th scope="col">Cabecera</th>
@@ -705,13 +243,54 @@ Guíame paso a paso con el código y las pruebas.</pre>
       </div>
     </section>
 
-<section id="adaptadores"><h2>Adaptadores MQTT</h2><p>Todos los endpoints utilizan POST. Las rutas se muestran completas; /api/v1/gateway/auth y /api/v1/gateway/acl conservan el formato EMQX. Los apartados de backend que siguen describen el contrato saliente compartido.</p><div class="table-container"><table><thead><tr><th scope="col">Bróker</th><th scope="col">Autenticación</th><th scope="col">Autorización</th></tr></thead><tbody><tr><td>EMQX</td><td><code>/api/v1/gateway/emqx/auth</code></td><td><code>/api/v1/gateway/emqx/acl</code></td></tr><tr><td>Mosquitto</td><td><code>/api/v1/gateway/mosquitto/auth</code></td><td><code>/api/v1/gateway/mosquitto/acl</code></td></tr><tr><td>VerneMQ</td><td><code>/api/v1/gateway/vernemq/auth</code></td><td><code>/api/v1/gateway/vernemq/acl</code></td></tr><tr><td>Genérico</td><td><code>/api/v1/gateway/generic/auth</code></td><td><code>/api/v1/gateway/generic/acl</code></td></tr></tbody></table></div><h3>EMQX y Genérico</h3><p>Enviar <code>Content-Type: application/json</code>. Auth recibe <code>{&quot;clientid&quot;:&quot;device_sensor_01&quot;,&quot;username&quot;:&quot;usuario&quot;,&quot;password&quot;:&quot;clave&quot;}</code>. ACL recibe <code>{&quot;clientid&quot;:&quot;device_sensor_01&quot;,&quot;username&quot;:&quot;usuario&quot;,&quot;topic&quot;:&quot;devices/telemetry&quot;,&quot;action&quot;:&quot;publish&quot;}</code>; para suscripciones, <code>action</code> es <code>subscribe</code>. Configurar el cuerpo HTTP de EMQX con estas propiedades y apuntar a las rutas /emqx/auth y /emqx/acl. EMQX recibe HTTP 200 con <code>{&quot;result&quot;:&quot;allow&quot;}</code>, <code>{&quot;result&quot;:&quot;deny&quot;}</code> o <code>{&quot;result&quot;:&quot;ignore&quot;}</code>. En allow se conserva <code>is_superuser</code>. Genérico recibe HTTP 200 con <code>{&quot;allowed&quot;:true,&quot;status&quot;:&quot;allow&quot;}</code>, <code>{&quot;allowed&quot;:false,&quot;status&quot;:&quot;deny&quot;}</code> o <code>{&quot;allowed&quot;:false,&quot;status&quot;:&quot;ignore&quot;}</code>.</p><h3>Mosquitto con mosquitto-go-auth</h3><p>Configurar el backend HTTP del complemento: <code>auth_opt_backends http</code>, <code>auth_opt_http_host 127.0.0.1</code>, <code>auth_opt_http_port 8085</code>, <code>auth_opt_http_getuser_uri /api/v1/gateway/mosquitto/auth</code>, <code>auth_opt_http_aclcheck_uri /api/v1/gateway/mosquitto/acl</code>, <code>auth_opt_http_method POST</code>, <code>auth_opt_http_params_mode json</code> y <code>auth_opt_http_response_mode status</code>. La ruta del complemento nativo <code>auth_plugin</code> depende de la instalación de Mosquitto.</p><p>Auth recibe <code>{&quot;clientid&quot;:&quot;device_sensor_01&quot;,&quot;username&quot;:&quot;usuario&quot;,&quot;password&quot;:&quot;clave&quot;}</code>. ACL recibe <code>{&quot;clientid&quot;:&quot;device_sensor_01&quot;,&quot;username&quot;:&quot;usuario&quot;,&quot;topic&quot;:&quot;devices/telemetry&quot;,&quot;acc&quot;:2}</code>. <code>acc=2</code> se traduce a <code>publish</code>; <code>acc=1</code> y <code>acc=4</code> a <code>subscribe</code>. Otros valores se deniegan. Se admiten JSON y formularios <code>application/x-www-form-urlencoded</code> con esos mismos campos. Respuesta: HTTP 200 para allow, 400 para deny y 404 para ignore, con <code>result</code> en JSON para diagnóstico. En modo status el complemento interpreta tanto 400 como 404 como un resultado no permitido; la cadena de backends del bróker determina si se prueban otros proveedores.</p><h3>VerneMQ con vmq_webhooks</h3><p>Activar <code>plugins.vmq_webhooks = on</code>. Registrar tres webhooks: <code>auth_on_register</code> apunta a <code>/api/v1/gateway/vernemq/auth</code>; <code>auth_on_publish</code> y <code>auth_on_subscribe</code> apuntan a <code>/api/v1/gateway/vernemq/acl</code>. Para cada webhook configurar <code>vmq_webhooks.&lt;nombre&gt;.hook</code> y <code>vmq_webhooks.&lt;nombre&gt;.endpoint</code> con el hook y la URL completa. Se admiten también los nombres de esos tres hooks terminados en <code>_m5</code> para MQTT 5.</p><p>El complemento envía JSON y la cabecera <code>vernemq-hook</code>. Auth recibe <code>{&quot;client_id&quot;:&quot;device_sensor_01&quot;,&quot;username&quot;:&quot;usuario&quot;,&quot;password&quot;:&quot;clave&quot;}</code>. Publicación recibe <code>{&quot;client_id&quot;:&quot;device_sensor_01&quot;,&quot;username&quot;:&quot;usuario&quot;,&quot;topic&quot;:&quot;devices/telemetry&quot;,&quot;qos&quot;:1}</code>. Suscripción recibe <code>{&quot;client_id&quot;:&quot;device_sensor_01&quot;,&quot;username&quot;:&quot;usuario&quot;,&quot;topics&quot;:[{&quot;topic&quot;:&quot;devices/telemetry&quot;,&quot;qos&quot;:1}]}</code>. <code>client_id</code> se copia a <code>clientid</code>; el hook de publicación añade <code>action=publish</code> y cada entrada de <code>topics</code> añade <code>action=subscribe</code>. Cada tópico tiene resolución, métrica y auditoría propias. Todos deben devolver allow: un deny deniega el conjunto; sin deny, un ignore produce next. Una lista vacía o inválida se deniega. Las respuestas usan HTTP 200: <code>{&quot;result&quot;:&quot;ok&quot;}</code> para allow, <code>{&quot;result&quot;:{&quot;error&quot;:&quot;not_allowed&quot;}}</code> para deny y <code>{&quot;result&quot;:&quot;next&quot;}</code> para ignore. No se devuelven modificadores de tópicos ni privilegios de superusuario específicos de VerneMQ.</p><h3>Contrato saliente compartido</h3><p>Los adaptadores traducen entrada y respuesta; los backends HTTP continúan recibiendo el contrato JSON existente (<code>clientid</code>, <code>username</code>, <code>password</code> para auth; <code>clientid</code>, <code>username</code>, <code>topic</code>, <code>action</code> para ACL). Se conservan campos adicionales, incluyendo los originales del bróker. Los backends responden con HTTP 2xx y <code>result=allow|deny|ignore</code>. La selección sigue siendo por prefijo de clientid para auth y de topic para ACL. JSON inválido, timeout y fallo del backend producen deny. Los privilegios de superusuario siguen siendo exclusivos del formato EMQX; en los otros brókers la autorización ACL se evalúa por separado.</p><p>Referencias del protocolo: <a href="https://github.com/iegomez/mosquitto-go-auth#http">mosquitto-go-auth</a> y <a href="https://docs.vernemq.com/plugin-development/webhookplugins">webhooks de VerneMQ</a>.</p><p></p></section><section id="admin"><h2>Acceso autónomo al panel</h2><p>La configuración está bajo <code>gateway.admin</code> en application.yml:</p><div class="table-container"><table><thead><tr><th scope="col">Propiedad en gateway.admin</th><th scope="col">Variable de entorno</th><th scope="col">Valor por defecto</th></tr></thead><tbody><tr><td>auth-provider</td><td>GATEWAY_ADMIN_AUTH_PROVIDER</td><td>internal</td></tr><tr><td>username</td><td>GATEWAY_ADMIN_USERNAME</td><td>admin</td></tr><tr><td>password</td><td>GATEWAY_ADMIN_PASSWORD</td><td>admin-secret-2026$</td></tr></tbody></table></div><p>En modo <code>internal</code>, POST <code>/api/admin/auth/login</code> recibe <code>{&quot;username&quot;:&quot;admin&quot;,&quot;password&quot;:&quot;&lt;contraseña configurada&gt;&quot;}</code> y devuelve <code>{&quot;token&quot;:&quot;&lt;UUID aleatorio&gt;&quot;,&quot;username&quot;:&quot;admin&quot;}</code>. Credenciales incorrectas: HTTP 401; campos vacíos: HTTP 400. El token se conserva únicamente en memoria y caduca ocho horas después de su emisión, sin renovación por actividad. Se pueden emitir varias sesiones. Reiniciar invalida todas las sesiones. Las entradas caducadas se eliminan al verificarlas y en cada login exitoso.</p><p>Todas las operaciones administrativas protegidas y GET/POST <code>/api/admin/auth/verify</code> requieren <code>Authorization: Bearer &lt;token&gt;</code>. La verificación correcta devuelve <code>{&quot;valid&quot;:true}</code>; un token ausente, desconocido o caducado devuelve HTTP 401. El panel sigue funcionando si EMQX está detenido. Configurar GATEWAY_ADMIN_PASSWORD en el entorno del servicio para sustituir la contraseña inicial.</p><p>En modo <code>emqx</code>, login delega en POST <code>/api/v5/login</code> y cada verificación delega en GET <code>/api/v5/users</code> del Dashboard indicado por GATEWAY_EMQX_URL. Los tokens internos no sirven en modo EMQX, ni los de EMQX en modo interno. No hay cambio automático de proveedor ante un fallo de EMQX. La integración existente por fragmento, almacenamiento e iframe continúa siempre que el token corresponda al proveedor configurado. Salir del panel elimina su sesión del navegador; el token interno sigue vigente hasta caducar o reiniciar. No se añade un endpoint de revocación. </p></section>
+<section id="adaptadores"><h2>Adaptadores MQTT</h2><p>Todos los endpoints utilizan POST. Las rutas se muestran completas; /api/v1/gateway/auth y /api/v1/gateway/acl conservan el formato EMQX. Los apartados de backend que siguen describen el contrato saliente compartido.</p><div class="table-container"><table><thead><tr><th scope="col">Bróker</th><th scope="col">Autenticación</th><th scope="col">Autorización</th></tr></thead><tbody><tr><td>EMQX</td><td><code>/api/v1/gateway/emqx/auth</code></td><td><code>/api/v1/gateway/emqx/acl</code></td></tr><tr><td>Mosquitto</td><td><code>/api/v1/gateway/mosquitto/auth</code></td><td><code>/api/v1/gateway/mosquitto/acl</code></td></tr><tr><td>VerneMQ</td><td><code>/api/v1/gateway/vernemq/auth</code></td><td><code>/api/v1/gateway/vernemq/acl</code></td></tr><tr><td>Genérico</td><td><code>/api/v1/gateway/generic/auth</code></td><td><code>/api/v1/gateway/generic/acl</code></td></tr></tbody></table></div><h3>EMQX y Genérico</h3><p>Enviar <code>Content-Type: application/json</code>. Auth recibe</p><div class="code-block"><div class="code-head"><span>Solicitud JSON</span><button type="button" class="copy-code" data-copy="payload-1" aria-label="Copiar Solicitud JSON"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg><span>Copiar</span></button></div><pre><code id="payload-1">{
+  &quot;clientid&quot;: &quot;device_sensor_01&quot;,
+  &quot;username&quot;: &quot;usuario&quot;,
+  &quot;password&quot;: &quot;clave&quot;
+}</code></pre></div><p>ACL recibe</p><div class="code-block"><div class="code-head"><span>Solicitud JSON</span><button type="button" class="copy-code" data-copy="payload-2" aria-label="Copiar Solicitud JSON"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg><span>Copiar</span></button></div><pre><code id="payload-2">{
+  &quot;clientid&quot;: &quot;device_sensor_01&quot;,
+  &quot;username&quot;: &quot;usuario&quot;,
+  &quot;topic&quot;: &quot;devices/telemetry&quot;,
+  &quot;action&quot;: &quot;publish&quot;
+}</code></pre></div><p>para suscripciones, <code>action</code> es <code>subscribe</code>. Configurar el cuerpo HTTP de EMQX con estas propiedades y apuntar a las rutas /emqx/auth y /emqx/acl. EMQX recibe HTTP 200 con <code>{&quot;result&quot;:&quot;allow&quot;}</code>, <code>{&quot;result&quot;:&quot;deny&quot;}</code> o <code>{&quot;result&quot;:&quot;ignore&quot;}</code>. En allow se conserva <code>is_superuser</code>. Genérico recibe HTTP 200 con <code>{&quot;allowed&quot;:true,&quot;status&quot;:&quot;allow&quot;}</code>, <code>{&quot;allowed&quot;:false,&quot;status&quot;:&quot;deny&quot;}</code> o <code>{&quot;allowed&quot;:false,&quot;status&quot;:&quot;ignore&quot;}</code>.</p><h3>Mosquitto con mosquitto-go-auth</h3><p>Configurar el backend HTTP del complemento: <code>auth_opt_backends http</code>, <code>auth_opt_http_host 127.0.0.1</code>, <code>auth_opt_http_port 8085</code>, <code>auth_opt_http_getuser_uri /api/v1/gateway/mosquitto/auth</code>, <code>auth_opt_http_aclcheck_uri /api/v1/gateway/mosquitto/acl</code>, <code>auth_opt_http_method POST</code>, <code>auth_opt_http_params_mode json</code> y <code>auth_opt_http_response_mode status</code>. La ruta del complemento nativo <code>auth_plugin</code> depende de la instalación de Mosquitto.</p><p>Auth recibe</p><div class="code-block"><div class="code-head"><span>Solicitud JSON</span><button type="button" class="copy-code" data-copy="payload-3" aria-label="Copiar Solicitud JSON"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg><span>Copiar</span></button></div><pre><code id="payload-3">{
+  &quot;clientid&quot;: &quot;device_sensor_01&quot;,
+  &quot;username&quot;: &quot;usuario&quot;,
+  &quot;password&quot;: &quot;clave&quot;
+}</code></pre></div><p>ACL recibe</p><div class="code-block"><div class="code-head"><span>Solicitud JSON</span><button type="button" class="copy-code" data-copy="payload-4" aria-label="Copiar Solicitud JSON"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg><span>Copiar</span></button></div><pre><code id="payload-4">{
+  &quot;clientid&quot;: &quot;device_sensor_01&quot;,
+  &quot;username&quot;: &quot;usuario&quot;,
+  &quot;topic&quot;: &quot;devices/telemetry&quot;,
+  &quot;acc&quot;: 2
+}</code></pre></div><p><code>acc=2</code> se traduce a <code>publish</code>; <code>acc=1</code> y <code>acc=4</code> a <code>subscribe</code>. Otros valores se deniegan. Se admiten JSON y formularios <code>application/x-www-form-urlencoded</code> con esos mismos campos. Respuesta: HTTP 200 para allow, 400 para deny y 404 para ignore, con <code>result</code> en JSON para diagnóstico. En modo status el complemento interpreta tanto 400 como 404 como un resultado no permitido; la cadena de backends del bróker determina si se prueban otros proveedores.</p><h3>VerneMQ con vmq_webhooks</h3><p>Activar <code>plugins.vmq_webhooks = on</code>. Registrar tres webhooks: <code>auth_on_register</code> apunta a <code>/api/v1/gateway/vernemq/auth</code>; <code>auth_on_publish</code> y <code>auth_on_subscribe</code> apuntan a <code>/api/v1/gateway/vernemq/acl</code>. Para cada webhook configurar <code>vmq_webhooks.&lt;nombre&gt;.hook</code> y <code>vmq_webhooks.&lt;nombre&gt;.endpoint</code> con el hook y la URL completa. Se admiten también los nombres de esos tres hooks terminados en <code>_m5</code> para MQTT 5.</p><p>El complemento envía JSON y la cabecera <code>vernemq-hook</code>. Auth recibe</p><div class="code-block"><div class="code-head"><span>Solicitud JSON</span><button type="button" class="copy-code" data-copy="payload-5" aria-label="Copiar Solicitud JSON"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg><span>Copiar</span></button></div><pre><code id="payload-5">{
+  &quot;client_id&quot;: &quot;device_sensor_01&quot;,
+  &quot;username&quot;: &quot;usuario&quot;,
+  &quot;password&quot;: &quot;clave&quot;
+}</code></pre></div><p>Publicación recibe</p><div class="code-block"><div class="code-head"><span>Solicitud JSON</span><button type="button" class="copy-code" data-copy="payload-6" aria-label="Copiar Solicitud JSON"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg><span>Copiar</span></button></div><pre><code id="payload-6">{
+  &quot;client_id&quot;: &quot;device_sensor_01&quot;,
+  &quot;username&quot;: &quot;usuario&quot;,
+  &quot;topic&quot;: &quot;devices/telemetry&quot;,
+  &quot;qos&quot;: 1
+}</code></pre></div><p>Suscripción recibe</p><div class="code-block"><div class="code-head"><span>Solicitud JSON</span><button type="button" class="copy-code" data-copy="payload-7" aria-label="Copiar Solicitud JSON"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg><span>Copiar</span></button></div><pre><code id="payload-7">{
+  &quot;client_id&quot;: &quot;device_sensor_01&quot;,
+  &quot;username&quot;: &quot;usuario&quot;,
+  &quot;topics&quot;: [
+    {
+      &quot;topic&quot;: &quot;devices/telemetry&quot;,
+      &quot;qos&quot;: 1
+    }
+  ]
+}</code></pre></div><p><code>client_id</code> se copia a <code>clientid</code>; el hook de publicación añade <code>action=publish</code> y cada entrada de <code>topics</code> añade <code>action=subscribe</code>. Cada tópico tiene resolución, métrica y auditoría propias. Todos deben devolver allow: un deny deniega el conjunto; sin deny, un ignore produce next. Una lista vacía o inválida se deniega. Las respuestas usan HTTP 200: <code>{&quot;result&quot;:&quot;ok&quot;}</code> para allow, <code>{&quot;result&quot;:{&quot;error&quot;:&quot;not_allowed&quot;}}</code> para deny y <code>{&quot;result&quot;:&quot;next&quot;}</code> para ignore. No se devuelven modificadores de tópicos ni privilegios de superusuario específicos de VerneMQ.</p><h3>Contrato saliente compartido</h3><p>Los adaptadores traducen entrada y respuesta; los backends HTTP continúan recibiendo el contrato JSON existente (<code>clientid</code>, <code>username</code>, <code>password</code> para auth; <code>clientid</code>, <code>username</code>, <code>topic</code>, <code>action</code> para ACL). Se conservan campos adicionales, incluyendo los originales del bróker. Los backends responden con HTTP 2xx y <code>result=allow|deny|ignore</code>. La selección sigue siendo por prefijo de clientid para auth y de topic para ACL. JSON inválido, timeout y fallo del backend producen deny. Los privilegios de superusuario siguen siendo exclusivos del formato EMQX; en los otros brókers la autorización ACL se evalúa por separado.</p><p>Referencias del protocolo: <a href="https://github.com/iegomez/mosquitto-go-auth#http">mosquitto-go-auth</a> y <a href="https://docs.vernemq.com/plugin-development/webhookplugins">webhooks de VerneMQ</a>.</p></section><section id="admin"><h2>Acceso autónomo al panel</h2><p>La configuración está bajo <code>gateway.admin</code> en application.yml:</p><div class="table-container"><table><thead><tr><th scope="col">Propiedad en gateway.admin</th><th scope="col">Variable de entorno</th><th scope="col">Valor por defecto</th></tr></thead><tbody><tr><td>auth-provider</td><td>GATEWAY_ADMIN_AUTH_PROVIDER</td><td>internal</td></tr><tr><td>username</td><td>GATEWAY_ADMIN_USERNAME</td><td>admin</td></tr><tr><td>password</td><td>GATEWAY_ADMIN_PASSWORD</td><td>admin-secret-2026$</td></tr></tbody></table></div><p>En modo <code>internal</code>, POST <code>/api/admin/auth/login</code> recibe <code>{&quot;username&quot;:&quot;admin&quot;,&quot;password&quot;:&quot;&lt;contraseña configurada&gt;&quot;}</code> y devuelve <code>{&quot;token&quot;:&quot;&lt;UUID aleatorio&gt;&quot;,&quot;username&quot;:&quot;admin&quot;}</code>. Credenciales incorrectas: HTTP 401; campos vacíos: HTTP 400. El token se conserva únicamente en memoria y caduca ocho horas después de su emisión, sin renovación por actividad. Se pueden emitir varias sesiones. Reiniciar invalida todas las sesiones. Las entradas caducadas se eliminan al verificarlas y en cada login exitoso.</p><p>Todas las operaciones administrativas protegidas y GET/POST <code>/api/admin/auth/verify</code> requieren <code>Authorization: Bearer &lt;token&gt;</code>. La verificación correcta devuelve <code>{&quot;valid&quot;:true}</code>; un token ausente, desconocido o caducado devuelve HTTP 401. El panel sigue funcionando si EMQX está detenido. Configurar GATEWAY_ADMIN_PASSWORD en el entorno del servicio para sustituir la contraseña inicial.</p><p>En modo <code>emqx</code>, login delega en POST <code>/api/v5/login</code> y cada verificación delega en GET <code>/api/v5/users</code> del Dashboard indicado por GATEWAY_EMQX_URL. Los tokens internos no sirven en modo EMQX, ni los de EMQX en modo interno. No hay cambio automático de proveedor ante un fallo de EMQX. La integración existente por fragmento, almacenamiento e iframe continúa siempre que el token corresponda al proveedor configurado. Salir del panel elimina su sesión del navegador; el token interno sigue vigente hasta caducar o reiniciar. No se añade un endpoint de revocación. </p></section>
     <section id="auth">
       <h2>Autenticación de Clientes</h2>
       <div class="endpoint">
         <span class="method post">POST</span>
         <code>/auth</code>
       </div>
+      <div class="code-block"><div class="code-head"><span>Ejemplo de solicitud JSON</span><button type="button" class="copy-code" data-copy="payload-8" aria-label="Copiar Ejemplo de solicitud JSON"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg><span>Copiar</span></button></div><pre><code id="payload-8">{
+  &quot;clientid&quot;: &quot;device_sensor_01&quot;,
+  &quot;username&quot;: &quot;usuario&quot;,
+  &quot;password&quot;: &quot;clave&quot;
+}</code></pre></div>
       <p>Invocado por el gateway al recibir una solicitud de conexión MQTT (paquete CONNECT). El servicio de backend debe validar el identificador de cliente y sus credenciales.</p>
 
       <h3>Parámetros del cuerpo de la solicitud (JSON)</h3>
@@ -785,6 +364,12 @@ Guíame paso a paso con el código y las pruebas.</pre>
         <span class="method post">POST</span>
         <code>/acl</code>
       </div>
+      <div class="code-block"><div class="code-head"><span>Ejemplo de solicitud JSON</span><button type="button" class="copy-code" data-copy="payload-9" aria-label="Copiar Ejemplo de solicitud JSON"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg><span>Copiar</span></button></div><pre><code id="payload-9">{
+  &quot;clientid&quot;: &quot;device_sensor_01&quot;,
+  &quot;username&quot;: &quot;usuario&quot;,
+  &quot;topic&quot;: &quot;devices/telemetry&quot;,
+  &quot;action&quot;: &quot;publish&quot;
+}</code></pre></div>
       <p>Invocado por el gateway cuando un cliente conectado intenta publicar un mensaje o suscribirse a un tópico MQTT.</p>
 
       <h3>Parámetros del cuerpo de la solicitud (JSON)</h3>
@@ -977,217 +562,123 @@ Guíame paso a paso con el código y las pruebas.</pre>
 
     <footer>
       Documentación técnica oficial de MQTT Gateway. Sin dependencias externas ni scripts de terceros.
-      <br><small style="color: var(--muted); font-size: 11px; margin-top: 8px; display: inline-block;">Aviso Legal: Todas las marcas comerciales mencionadas (EMQX, Mosquitto, VerneMQ, HiveMQ) pertenecen a sus respectivos dueños. Este software es un proyecto comunitario independiente de código abierto bajo licencia GNU AGPL-3.0 con opción de licenciamiento comercial.</small>
+      <br><small>Aviso Legal: Todas las marcas comerciales mencionadas (EMQX, Mosquitto, VerneMQ, HiveMQ) pertenecen a sus respectivos dueños. Este software es un proyecto comunitario independiente de código abierto bajo licencia GNU AGPL-3.0 con opción de licenciamiento comercial.</small>
     </footer>
   </main>
+  <p id="copy-status" class="sr-only" role="status" aria-live="polite"></p>
 
   <script>
-    const themeBtn = document.getElementById('theme-toggle');
-    const themeIcon = document.getElementById('theme-icon');
-    const themeLabel = document.getElementById('theme-label');
 
-    function renderTheme() {
-      const saved = localStorage.getItem('gateway_theme') || 'system';
-      const effective = saved === 'system'
-        ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-        : saved;
-      document.documentElement.setAttribute('data-theme', effective);
-      if (themeIcon && themeLabel) {
-        if (effective === 'dark') {
-          themeIcon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
-          themeLabel.textContent = 'Oscuro';
-        } else {
-          themeIcon.innerHTML = '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
-          themeLabel.textContent = 'Claro';
-        }
-      }
+    const themeButtons = [...document.querySelectorAll('.theme-switch button')];
+    const scheme = matchMedia('(prefers-color-scheme: dark)');
+    function readTheme() {
+      try {
+        const value = localStorage.getItem('gateway_theme');
+        if (['light', 'dark', 'system'].includes(value)) return value;
+      } catch (_) {}
+      return 'system';
     }
-
-    if (themeBtn) {
-      themeBtn.addEventListener('click', function() {
-        const current = localStorage.getItem('gateway_theme') || 'system';
-        const effective = current === 'system'
-          ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-          : current;
-        const next = effective === 'dark' ? 'light' : 'dark';
-        localStorage.setItem('gateway_theme', next);
-        renderTheme();
+    let preference = readTheme();
+    const themeIcons = {
+      system:'<rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8m-4-4v4"/>',
+      light:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/>',
+      dark:'<path d="M20.5 13.5A8.6 8.6 0 0 1 10.5 3a8.6 8.6 0 1 0 10 10.5Z"/>'
+    };
+    function renderTheme() {
+      document.documentElement.dataset.theme = preference === 'system' ? (scheme.matches ? 'dark' : 'light') : preference;
+      themeButtons.forEach(button => {
+        button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true">'+themeIcons[button.dataset.val]+'</svg>';
+        const active = button.dataset.val === preference;
+        button.classList.toggle('active',active);
+        button.setAttribute('aria-pressed',String(active));
       });
     }
-
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function() {
-      if ((localStorage.getItem('gateway_theme') || 'system') === 'system') {
-        renderTheme();
-      }
-    });
-
+    themeButtons.forEach(button => button.addEventListener('click', () => {
+      preference = button.dataset.val;
+      try { localStorage.setItem('gateway_theme',preference); } catch (_) {}
+      renderTheme();
+    }));
+    scheme.addEventListener('change', () => { if (preference === 'system') renderTheme(); });
+    addEventListener('storage', event => { if (event.key === 'gateway_theme') { preference = readTheme(); renderTheme(); } });
     renderTheme();
 
-    /* Navegación dinámica y ScrollSpy */
-    const navLinks = Array.from(document.querySelectorAll('nav a'));
-    const sections = Array.from(document.querySelectorAll('main section[id]'));
-    const linkMap = new Map();
-    navLinks.forEach(link => {
-      const href = link.getAttribute('href');
-      if (href && href.startsWith('#')) {
-        linkMap.set(href.slice(1), link);
-      }
+    const menu = document.getElementById('contents-menu');
+    const compact = matchMedia('(max-width: 850px)');
+    function renderMenu() { menu.open = !compact.matches; }
+    compact.addEventListener('change',renderMenu);
+    renderMenu();
+    const navLinks = [...document.querySelectorAll('#docs-nav a[href^="#"]')];
+    const sections = navLinks.map(link => document.getElementById(link.hash.slice(1))).filter(Boolean);
+    const tableRegions = [...document.querySelectorAll('.table-container')];
+    tableRegions.forEach(region => {
+      region.setAttribute('role','region');
+      const title = region.closest('section').querySelector('h2,h1').textContent;
+      region.setAttribute('aria-label','Tabla: '+title);
+      const note = document.createElement('p');
+      note.className = 'table-note'; note.hidden = true;
+      note.textContent = 'Desplázate horizontalmente para ver todas las columnas.';
+      region.after(note);
     });
-
-    function setActiveSection(id) {
-      if (!id || !linkMap.has(id)) return;
-      navLinks.forEach(l => l.classList.remove('active'));
-      const activeLink = linkMap.get(id);
-      activeLink.classList.add('active');
-    }
-
-    let clickLockTimeout = null;
-    navLinks.forEach(link => {
-      link.addEventListener('click', function() {
-        const href = this.getAttribute('href');
-        if (href && href.startsWith('#')) {
-          const targetId = href.slice(1);
-          setActiveSection(targetId);
-          clearTimeout(clickLockTimeout);
-          clickLockTimeout = setTimeout(() => {
-            clickLockTimeout = null;
-          }, 900);
-        }
-      });
-    });
-
-    let scrollTicking = false;
-    function onScroll() {
-      if (clickLockTimeout) return;
-      if (scrollTicking) return;
-      scrollTicking = true;
-      window.requestAnimationFrame(() => {
-        let currentId = null;
-
-        if ((window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 60)) {
-          currentId = sections[sections.length - 1].id;
-        } else {
-          const triggerLine = 140;
-          for (let i = 0; i < sections.length; i++) {
-            const sec = sections[i];
-            const rect = sec.getBoundingClientRect();
-            if (rect.top <= triggerLine && rect.bottom > triggerLine) {
-              currentId = sec.id;
-              break;
-            }
-          }
-        }
-
-        if (currentId) {
-          setActiveSection(currentId);
-        }
-        scrollTicking = false;
+    function tableLayout() {
+      tableRegions.forEach(region => {
+        const overflow = region.scrollWidth > region.clientWidth+1;
+        region.tabIndex = overflow ? 0 : -1;
+        region.nextElementSibling.hidden = !overflow;
       });
     }
-
-    window.addEventListener('scroll', onScroll, { passive: true });
-
-    if (window.location.hash) {
-      setActiveSection(window.location.hash.slice(1));
-    } else {
-      onScroll();
-    }
-
-    /* Soporte de Agentes de IA y Botón de Copiado de Prompts */
-    const agentPrompts = {
-      backend: `Ayúdame a crear e implementar un servicio de backend HTTP para integrarlo con MQTT Gateway. Lee primero la especificación técnica en https://raw.githubusercontent.com/kgvicente/mqtt-gateway/main/docs/llms.txt (o en el endpoint local /gateway/llms.txt y /gateway/docs.md).
-El servicio debe implementar:
-1. POST /auth: Recibe {"clientid", "username", "password"} y responde HTTP 200 con {"result": "allow"} o {"result": "deny"}.
-2. POST /acl: Recibe {"clientid", "username", "topic", "action": "publish" | "subscribe"} y responde HTTP 200 con {"result": "allow"} o {"result": "deny"}.
-3. GET /health: Sondeo de disponibilidad rápido (debe responder HTTP 200 en < 2000ms).
-4. Seguridad: Validar la cabecera opcional X-EMQX-API-KEY si está configurada.
-Guíame paso a paso con el código y las pruebas.`,
-
-      broker: `Ayúdame a configurar la autenticación y autorización HTTP en mi bróker MQTT para conectarlo con MQTT Gateway. Consulta la especificación en https://raw.githubusercontent.com/kgvicente/mqtt-gateway/main/docs/llms.txt (o /gateway/docs.md).
-Adaptadores disponibles:
-- EMQX: POST /api/v1/gateway/emqx/auth y POST /api/v1/gateway/emqx/acl
-- Mosquitto (mosquitto-go-auth): POST /api/v1/gateway/mosquitto/auth y /acl
-- VerneMQ (webhooks): POST /api/v1/gateway/vernemq/auth y /acl
-- Genérico: POST /api/v1/gateway/generic/auth y /acl
-Guíame con la configuración del bróker y en la creación de las rutas y prefijos correspondientes.`,
-
-      quickstart: `Ayúdame a entender la arquitectura y configurar MQTT Gateway. Lee primero la guía técnica en https://raw.githubusercontent.com/kgvicente/mqtt-gateway/main/docs/llms.txt (o /gateway/docs.md) y acompáñame paso a paso en el despliegue y la integración de mis servicios.`
-    };
-
-    let activePromptKey = 'backend';
-    const promptContentEl = document.getElementById('agent-prompt-content');
-    const tabBtns = Array.from(document.querySelectorAll('.agent-tab-btn'));
-    const cardCopyBtn = document.getElementById('card-copy-prompt-btn');
-    const headerCopyBtn = document.getElementById('header-copy-prompt-btn');
-
-    tabBtns.forEach(btn => {
-      btn.addEventListener('click', function() {
-        const tabKey = this.getAttribute('data-tab');
-        if (!tabKey || !agentPrompts[tabKey]) return;
-        activePromptKey = tabKey;
-        tabBtns.forEach(b => {
-          b.classList.remove('active');
-          b.setAttribute('aria-selected', 'false');
-        });
-        this.classList.add('active');
-        this.setAttribute('aria-selected', 'true');
-        if (promptContentEl) {
-          promptContentEl.textContent = agentPrompts[tabKey];
-        }
-      });
-    });
-
-    async function triggerCopy(text, btn, successText, originalText) {
-      if (!text) return;
-      let ok = false;
-      try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          await navigator.clipboard.writeText(text);
-          ok = true;
-        }
-      } catch (err) {
-        ok = false;
-      }
-
-      if (!ok) {
-        try {
-          const ta = document.createElement('textarea');
-          ta.value = text;
-          ta.style.position = 'fixed';
-          ta.style.opacity = '0';
-          document.body.appendChild(ta);
-          ta.select();
-          ok = document.execCommand('copy');
-          document.body.removeChild(ta);
-        } catch (e) {
-          ok = false;
-        }
-      }
-
-      if (btn) {
-        const labelEl = btn.querySelector('.copy-label') || btn.querySelector('.prompt-btn-text');
-        btn.classList.add('copied');
-        if (labelEl) labelEl.textContent = successText;
-        setTimeout(() => {
-          btn.classList.remove('copied');
-          if (labelEl) labelEl.textContent = originalText;
-        }, 2000);
-      }
-    }
-
-    if (cardCopyBtn) {
-      cardCopyBtn.addEventListener('click', () => {
-        const text = promptContentEl ? promptContentEl.textContent : (agentPrompts[activePromptKey] || '');
-        triggerCopy(text, cardCopyBtn, '¡Copiado!', 'Copiar Prompt');
+    let scheduled = false;
+    // ponytail: ocho secciones y un único frame por scroll; no hace falta otra biblioteca.
+    function updateSection() {
+      scheduled = false;
+      const offset = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--scroll-offset'))+8;
+      let current = sections[0];
+      for (const section of sections) if (section.getBoundingClientRect().top <= offset) current = section;
+      if (innerHeight+scrollY >= document.documentElement.scrollHeight-4) current = sections.at(-1);
+      navLinks.forEach(link => {
+        const active = link.hash === '#'+current.id;
+        link.classList.toggle('active',active);
+        if (active) link.setAttribute('aria-current','location'); else link.removeAttribute('aria-current');
       });
     }
+    function scheduleSection() { if (!scheduled) { scheduled = true; requestAnimationFrame(updateSection); } }
+    navLinks.forEach(link => link.addEventListener('click', () => { if (compact.matches) menu.open = false; scheduleSection(); }));
+    addEventListener('scroll',scheduleSection,{passive:true});
+    addEventListener('hashchange',scheduleSection);
+    addEventListener('resize', () => { tableLayout(); scheduleSection(); });
+    addEventListener('load', () => { tableLayout(); scheduleSection(); });
+    tableLayout(); scheduleSection();
 
-    if (headerCopyBtn) {
-      headerCopyBtn.addEventListener('click', () => {
-        const text = agentPrompts[activePromptKey] || agentPrompts.backend;
-        triggerCopy(text, headerCopyBtn, '¡Copiado!', 'Copiar Prompt IA');
-      });
+    const agentPrompt = `Ayúdame a integrar mis servicios de backend con MQTT Gateway. Lee primero la especificación técnica en https://raw.githubusercontent.com/kgvicente/mqtt-gateway/main/docs/llms.txt (o en el endpoint local /gateway/llms.txt y /gateway/docs.md) y guíame paso a paso para implementar los endpoints /auth, /acl y /health cumpliendo los contratos HTTP y la seguridad con X-EMQX-API-KEY.`;
+    const status = document.getElementById('copy-status');
+    async function copyText(value) {
+      try { await navigator.clipboard.writeText(value); return true; } catch (_) {}
+      // ponytail: el fallback nativo mantiene el botón útil sin permisos de Clipboard.
+      const previous = document.activeElement;
+      const area = document.createElement('textarea');
+      area.value = value; area.className = 'sr-only'; area.readOnly = true;
+      document.body.append(area); area.select();
+      try { return document.execCommand('copy'); } catch (_) { return false; }
+      finally { area.remove(); previous?.focus({preventScroll:true}); }
     }
+    const timers = new WeakMap();
+    async function copyFromButton(button,value,agent=false) {
+      if (button.disabled) return;
+      clearTimeout(timers.get(button)); status.textContent = '';
+      button.disabled = true; button.setAttribute('aria-busy','true');
+      const copied = await copyText(value);
+      button.disabled = false; button.removeAttribute('aria-busy');
+      button.classList.toggle('copied',copied && agent);
+      button.classList.toggle('copy-error',!copied);
+      const label = button.querySelector(agent ? '.cf-btn-label' : 'span');
+      label.textContent = copied ? (agent ? 'Prompt copiado!' : 'Copiado') : 'Error al copiar';
+      status.textContent = copied ? (agent ? 'Prompt copiado al portapapeles.' : 'Ejemplo JSON copiado al portapapeles.') : 'No se pudo copiar. Revisa los permisos del portapapeles e inténtalo de nuevo.';
+      timers.set(button,setTimeout(() => {
+        button.classList.remove('copied','copy-error');
+        label.textContent = agent ? 'Copiar prompt' : 'Copiar';
+      },2400));
+    }
+    document.getElementById('copy-agent-prompt-btn').addEventListener('click',event => copyFromButton(event.currentTarget,agentPrompt,true));
+    document.querySelectorAll('[data-copy]').forEach(button => button.addEventListener('click', () => copyFromButton(button,document.getElementById(button.dataset.copy).textContent)));
   </script>
 </body>
 </html>
