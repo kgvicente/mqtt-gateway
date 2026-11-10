@@ -90,7 +90,7 @@ for payloads and configuration.
   tokens expire after eight hours and are lost on restart.
 - Store routes and operational state in local JSON files, without a database.
 
-## 🤖 Build with AI Coding Agents (Cursor, Claude, Copilot)
+## Build with AI Coding Agents (Cursor, Claude, Copilot)
 
 If you use AI coding assistants such as **Cursor**, **Claude Code**, **GitHub Copilot**, **Windsurf**, or **ChatGPT**, you can copy and paste the prompt below to automatically build your backend service or integrate your MQTT broker:
 
