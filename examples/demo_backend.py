@@ -37,16 +37,18 @@ class Backend(BaseHTTPRequestHandler):
         else:
             topic = body.get("topic")
             allowed = (allowed and isinstance(topic, str) and topic.startswith("demo/")
+                       and not topic.startswith("demo/private/")
                        and body.get("action") in ("publish", "subscribe"))
         self.reply(200, {"result": "allow" if allowed else "deny"})
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=19090)
     args = parser.parse_args()
-    server = ThreadingHTTPServer(("127.0.0.1", args.port), Backend)
-    print(f"Backend de demostración: http://127.0.0.1:{server.server_port}", flush=True)
+    server = ThreadingHTTPServer((args.host, args.port), Backend)
+    print(f"Backend de demostración: http://{args.host}:{server.server_port}", flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

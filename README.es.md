@@ -15,6 +15,29 @@ El panel administrativo actual está en español.*
 
 ## Pruébalo en tu equipo
 
+Para una demostración MQTT real, usa **Docker Compose 2.20+ con contenedores Linux**
+en un equipo AMD64. Docker Desktop puede ejecutarlos en Windows. Esta opción no
+requiere JDK, Python ni clientes MQTT instalados en el host.
+
+```sh
+git clone https://github.com/kgvicente/mqtt-gateway.git
+cd mqtt-gateway
+docker compose up --build --wait
+```
+
+Abre <http://127.0.0.1:18085/gateway/> e ingresa con
+`admin` / `local-demo-admin-2026`. Son credenciales públicas de la demo local.
+
+```sh
+docker compose --profile test run --rm mqtt-tests
+```
+
+Las pruebas comprueban entrega real de mensajes MQTT 5 y rechazo de contraseñas,
+publicaciones y suscripciones no autorizadas. Consulta la
+[guía de Compose](docs/compose.es.md) para ver puertos, limpieza y límites de las imágenes.
+
+### Compilar sin Docker
+
 La [guía de inicio rápido](docs/quickstart.es.md) permite ejecutar un backend HTTP
 en Python, iniciar el gateway y enviar solicitudes con resultados `allow`, `deny`
 e `ignore`. Esa demostración HTTP no necesita bróker MQTT, base de datos,
@@ -91,15 +114,18 @@ python3 scripts/smoke.py
 ```
 
 Ejecútala en Linux o WSL después de compilar el JAR; utiliza el puerto 18085.
-Las pruebas de contrato HTTP no sustituyen las pruebas de extremo a extremo con
-brókers MQTT activos. Esa validación sigue siendo necesaria antes de anunciarla
-para una versión.
+La suite Compose valida Mosquitto 2.0.15 con la imagen fijada de mosquitto-go-auth
+y MQTT 5. EMQX y VerneMQ tienen pruebas de contrato HTTP; esta versión no certifica
+su interoperabilidad MQTT real. El complemento de la demo está archivado en su
+origen y se utiliza para evaluación local.
 
 La auditoría y los sondeos muestran datos retenidos con la rotación diaria
 existente. No hay almacenamiento distribuido ni coordinación de alta disponibilidad.
 
 ## Documentación y contribuciones
 
+- [Docker Compose / demo MQTT real](docs/compose.es.md)
+- [Cambios de la versión](CHANGELOG.md) · [Descargas](https://github.com/kgvicente/mqtt-gateway/releases)
 - [Inicio rápido](docs/quickstart.es.md) · [Quick start in English](docs/quickstart.md)
 - [Referencia técnica](docs/reference.es.md)
 - [Manual de operaciones](MANUAL_OPERACIONES.md)

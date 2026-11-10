@@ -1,0 +1,14 @@
+.git
+.idea
+.vscode
+target
+data
+**/__pycache__
+**/node_modules
+*.log
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx

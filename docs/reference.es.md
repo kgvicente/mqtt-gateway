@@ -7,18 +7,31 @@ por primera vez, empieza por la guía de inicio rápido.
 
 ## Ejecutar y comprobar
 
+Para la demo con un bróker real y contenedores, consulta [Docker Compose](compose.es.md).
+
 ```sh
 ./mvnw package
 python3 scripts/smoke.py
 ./mvnw package -Dnative -Dquarkus.native.container-build=true
-python3 scripts/smoke.py ./target/mqtt-gateway-1.0.0-SNAPSHOT-runner
+python3 scripts/smoke.py ./target/mqtt-gateway-0.1.0-runner
 ```
 
 JDK 25 es necesario para compilar. Docker solo es necesario para la modalidad
 de compilación nativa en contenedor. Maven Wrapper descarga Maven.
-El ejecutable Linux queda en target/mqtt-gateway-1.0.0-SNAPSHOT-runner.
+El ejecutable Linux queda en target/mqtt-gateway-0.1.0-runner.
 Si el ejecutable ya está en uso, renombrarlo antes de compilar para conservar
 el proceso activo y disponer de una copia de recuperación.
+
+Para generar la distribución JVM y su suma SHA-256, con Python 3.11 o posterior:
+
+```sh
+./mvnw package
+python3 scripts/package_release.py
+```
+
+Los archivos quedan en `target/releases/`. El ZIP contiene el directorio
+`quarkus-app` completo, instrucciones y licencias. Necesita JRE/JDK 25 en Linux
+o WSL; no incluye un runtime Java ni un bróker MQTT.
 
 Los smoke usan EMQX y backends simulados, puerto 18085 y datos temporales en
 target/. Comprueban los dos proveedores administrativos, los cuatro adaptadores,
@@ -31,7 +44,7 @@ Pruebas de navegador opcionales, sin dependencias en producción:
 npm install --prefix target/browser --no-package-lock playwright@1.55.1
 target/browser/node_modules/.bin/playwright install chromium
 UI_SMOKE=1 python3 scripts/smoke.py
-UI_SMOKE=1 python3 scripts/smoke.py ./target/mqtt-gateway-1.0.0-SNAPSHOT-runner
+UI_SMOKE=1 python3 scripts/smoke.py ./target/mqtt-gateway-0.1.0-runner
 ```
 
 Capturas de escritorio y móvil: target/admin-desktop.png y target/admin-mobile.png.

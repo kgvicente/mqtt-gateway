@@ -2,6 +2,8 @@
 
 [English](quickstart.md) | [Español](quickstart.es.md) | [Presentación](../README.es.md)
 
+Para una demo con bróker MQTT real, consulta la [guía de Docker Compose](compose.es.md).
+
 Ejecuta el gateway con un backend HTTP pequeño para probar autenticación y permisos
 de tópicos. Esta demostración HTTP no requiere bróker MQTT, base de datos, Docker
 ni una cuenta EMQX. No establece una conexión MQTT real.

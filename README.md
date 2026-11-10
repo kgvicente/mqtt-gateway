@@ -15,6 +15,29 @@ The current admin UI is in Spanish.*
 
 ## Try it locally
 
+For a real MQTT demonstration, use **Docker Compose 2.20+ with Linux containers**
+on an AMD64 machine. Docker Desktop can provide those containers on Windows.
+No host JDK, Python or MQTT clients are needed for this path.
+
+```sh
+git clone https://github.com/kgvicente/mqtt-gateway.git
+cd mqtt-gateway
+docker compose up --build --wait
+```
+
+Open <http://127.0.0.1:18085/gateway/> and sign in with
+`admin` / `local-demo-admin-2026`. These are public, local-demo credentials.
+
+```sh
+docker compose --profile test run --rm mqtt-tests
+```
+
+The tests check real MQTT 5 message delivery and reject incorrect passwords,
+unauthorized publications and unauthorized subscriptions. See the
+[Compose guide](docs/compose.md) for ports, cleanup and image limitations.
+
+### Build without Docker
+
 The [hands-on quick start](docs/quickstart.md) runs a Python HTTP backend and a
 gateway instance, then demonstrates `allow`, `deny` and `ignore`. No MQTT broker,
 database, Docker installation or EMQX account is required for this HTTP demo.
@@ -90,14 +113,18 @@ python3 scripts/smoke.py
 ```
 
 Run this on Linux or WSL after building the JAR. The suite uses port 18085.
-HTTP contract checks do not replace end-to-end tests with running MQTT brokers;
-that interoperability validation is still needed before claiming it for a release.
+The Compose suite validates Mosquitto 2.0.15 with the pinned mosquitto-go-auth
+image and MQTT 5. EMQX and VerneMQ currently have HTTP contract tests; this release
+does not certify their real-broker interoperability. The demo plugin is archived
+upstream and is used for local evaluation.
 
 Audit and probe views cover retained data with the existing daily rotation.
 There is no distributed state store or high-availability coordination.
 
 ## Documentation and contributions
 
+- [Docker Compose / real MQTT demo](docs/compose.md)
+- [Release notes](CHANGELOG.md) · [Downloads](https://github.com/kgvicente/mqtt-gateway/releases)
 - [Quick start](docs/quickstart.md) · [Inicio rápido en español](docs/quickstart.es.md)
 - [Technical reference, Spanish](docs/reference.es.md)
 - [Operations manual, Spanish](MANUAL_OPERACIONES.md)
