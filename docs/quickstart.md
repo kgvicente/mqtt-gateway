@@ -117,6 +117,6 @@ and mock HTTP dependencies. It does not need the demo backend or an MQTT broker.
 
 ## License
 
-Project-owned code is available under [PolyForm Noncommercial 1.0.0](../LICENSE).
+Project-owned code is available under [GNU AGPL-3.0](../LICENSE).
 Commercial uses outside its permissions require a separate license from the
 rights holder. Third-party components retain their [own licenses](../NOTICE).

@@ -4,7 +4,7 @@ Los cambios se proponen mediante pull requests hacia main.
 @kgvicente es el responsable de revisar todos los archivos, incluido CODEOWNERS.
 Los cambios posteriores a una aprobación requieren una nueva revisión.
 
-El código propio del proyecto está bajo PolyForm Noncommercial License 1.0.0.
+El código propio del proyecto está bajo GNU Affero General Public License v3.0 (AGPL-3.0).
 Envía únicamente aportaciones que tengas derecho a compartir bajo esa licencia.
 Conserva las atribuciones y licencias de cualquier componente de terceros.
 
