@@ -90,7 +90,7 @@ para ver payloads y configuración.
   caducan a las ocho horas y se pierden al reiniciar.
 - Rutas y estado operativo en archivos JSON locales, sin base de datos.
 
-## 🤖 Desarrolla con Agentes de IA (Cursor, Claude, Copilot)
+## Desarrolla con Agentes de IA (Cursor, Claude, Copilot)
 
 Si utilizas asistentes o agentes de desarrollo con IA como **Cursor**, **Claude Code**, **GitHub Copilot**, **Windsurf** o **ChatGPT**, puedes copiar y pegar el siguiente prompt para que tu asistente implemente tu backend o conecte tu bróker MQTT:
 
