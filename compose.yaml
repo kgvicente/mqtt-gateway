@@ -1,0 +1,67 @@
+services:
+  backend:
+    image: python:3.13-alpine@sha256:1e1f6334529d1fb26a2ef619d7cffb30a7c7d7cc1cc7338ebee283a58d1aeaca
+    command: ["python", "/demo/demo_backend.py", "--host", "0.0.0.0"]
+    volumes:
+      - ./examples/demo_backend.py:/demo/demo_backend.py:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:19090/health',timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  gateway:
+    image: mqtt-gateway:0.1.0
+    build: .
+    environment:
+      GATEWAY_ADMIN_AUTH_PROVIDER: internal
+      GATEWAY_ADMIN_USERNAME: admin
+      GATEWAY_ADMIN_PASSWORD: local-demo-admin-2026
+    ports:
+      - "127.0.0.1:${DEMO_HTTP_PORT:-18085}:8085"
+    volumes:
+      - gateway-data:/app/data
+
+  bootstrap:
+    image: python:3.13-alpine@sha256:1e1f6334529d1fb26a2ef619d7cffb30a7c7d7cc1cc7338ebee283a58d1aeaca
+    command: ["python", "/demo/bootstrap.py"]
+    environment:
+      GATEWAY_ADMIN_PASSWORD: local-demo-admin-2026
+    volumes:
+      - ./examples/compose/bootstrap.py:/demo/bootstrap.py:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+      gateway:
+        condition: service_started
+
+  mosquitto:
+    # ponytail: fijar la imagen del complemento evita cambiar la demo con cada latest.
+    image: iegomez/mosquitto-go-auth@sha256:acd65f8566f22126e3bf3b72fe5bee8a5002ca57695f211b1904013953560c3f
+    platform: linux/amd64
+    volumes:
+      - ./examples/compose/mosquitto.conf:/etc/mosquitto/mosquitto.conf:ro
+    ports:
+      - "127.0.0.1:${DEMO_MQTT_PORT:-18883}:1883"
+    depends_on:
+      bootstrap:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "mosquitto_pub", "-h", "127.0.0.1", "-i", "demo_health", "-u", "demo-user", "-P", "demo-password", "-t", "demo/health", "-m", "ready", "-q", "1"]
+      interval: 10s
+      timeout: 6s
+      retries: 6
+
+  mqtt-tests:
+    profiles: ["test"]
+    image: iegomez/mosquitto-go-auth@sha256:acd65f8566f22126e3bf3b72fe5bee8a5002ca57695f211b1904013953560c3f
+    platform: linux/amd64
+    entrypoint: ["/bin/sh", "/demo/test_mqtt.sh"]
+    volumes:
+      - ./examples/compose/test_mqtt.sh:/demo/test_mqtt.sh:ro
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+
+volumes:
+  gateway-data:

@@ -2,6 +2,8 @@
 
 [English](quickstart.md) | [Español](quickstart.es.md) | [Project overview](../README.md)
 
+Prefer a real MQTT broker demo? Use the [Docker Compose guide](compose.md).
+
 Run the gateway with a small HTTP backend and test authentication and topic access.
 No MQTT broker, database, Docker installation or EMQX account is needed for this
 HTTP demonstration. It does not establish a real MQTT connection.
