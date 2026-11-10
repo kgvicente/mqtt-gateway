@@ -1,0 +1,53 @@
+# MQTT Gateway
+
+> Proxy inverso y gateway HTTP de alto rendimiento que desacopla brókers MQTT (EMQX, Mosquitto, VerneMQ) de los microservicios de backend. Centraliza autenticación de clientes, control de acceso a tópicos (ACL) y supervisión de disponibilidad con observabilidad en tiempo real.
+
+## Documentación Principal
+
+- [/gateway/docs](/gateway/docs.md): Especificación técnica completa de contratos HTTP, esquemas JSON, sondeos y códigos de error.
+- [Inicio Rápido](https://github.com/kgvicente/mqtt-gateway/blob/main/docs/quickstart.es.md): Despliegue en 5 minutos con Docker Compose o binario nativo.
+- [Docker Compose](https://github.com/kgvicente/mqtt-gateway/blob/main/docs/compose.es.md): Arquitectura del stack de demostración con bróker MQTT y backends simulados.
+
+## Endpoints de Tráfico MQTT
+
+- [POST /api/v1/gateway/emqx/auth](/api/v1/gateway/emqx/auth): Autenticación para EMQX (campos: clientid, username, password). Devuelve allow/deny/ignore.
+- [POST /api/v1/gateway/emqx/acl](/api/v1/gateway/emqx/acl): Autorización para EMQX (campos: clientid, username, topic, action=publish|subscribe).
+- [POST /api/v1/gateway/mosquitto/auth](/api/v1/gateway/mosquitto/auth): Adaptador para mosquitto-go-auth (HTTP 200 allow, 400 deny, 404 ignore).
+- [POST /api/v1/gateway/mosquitto/acl](/api/v1/gateway/mosquitto/acl): Autorización para mosquitto-go-auth (mapeo acc: 1=sub, 2=pub).
+- [POST /api/v1/gateway/vernemq/auth](/api/v1/gateway/vernemq/auth): Webhook auth_on_register de VerneMQ con cabecera vernemq-hook.
+- [POST /api/v1/gateway/vernemq/acl](/api/v1/gateway/vernemq/acl): Webhooks auth_on_publish y auth_on_subscribe de VerneMQ.
+- [POST /api/v1/gateway/generic/auth](/api/v1/gateway/generic/auth): Formato agnóstico (JSON con allowed: boolean).
+- [POST /api/v1/gateway/generic/acl](/api/v1/gateway/generic/acl): Formato agnóstico para otros brókers.
+- [GET /q/health](/q/health): Sondeo de salud interno del runtime Quarkus.
+
+## API Administrativa (Requiere Authorization: Bearer <token>)
+
+- [POST /api/admin/auth/login](/api/admin/auth/login): Autenticación administrativa local o delegada a EMQX.
+- [GET /api/admin/auth/verify](/api/admin/auth/verify): Verificación de validez de token.
+- [GET /api/admin/routes](/api/admin/routes): Listado de backends y prefijos de enrutamiento.
+- [POST /api/admin/routes](/api/admin/routes): Registrar un nuevo backend HTTP (name, authPrefixes, aclPrefixes, authUrl, aclUrl, healthUrl, apiKey).
+- [PUT /api/admin/routes/{id}](/api/admin/routes/{id}): Modificar configuración de backend o pausar tráfico.
+- [DELETE /api/admin/routes/{id}](/api/admin/routes/{id}): Eliminar un backend.
+- [POST /api/admin/routes/{id}/test](/api/admin/routes/{id}/test): Disparar un sondeo HTTP inmediato de salud.
+- [GET /api/admin/metrics](/api/admin/metrics): Métricas de latencia (P95, min, max, promedio) y disponibilidad.
+- [GET /api/admin/logs](/api/admin/logs): Registro de auditoría de decisiones en vivo (hasta 2 000 eventos).
+- [GET /api/admin/incidents](/api/admin/incidents): Registro persistente de incidentes e interrupciones.
+
+## Contratos HTTP Salientes hacia tus Backends
+
+- **Autenticación (POST authUrl):**
+  - Payload enviado: `{"clientid":"<id>","username":"<user>","password":"<pass>"}`
+  - Cabecera opcional: `X-EMQX-API-KEY: <clave configurada>`
+  - Respuesta esperada: HTTP 200 con `{"result":"allow"}` o `{"result":"deny"}`.
+- **Autorización (POST aclUrl):**
+  - Payload enviado: `{"clientid":"<id>","username":"<user>","topic":"<topic>","action":"publish"|"subscribe"}`
+  - Cabecera opcional: `X-EMQX-API-KEY: <clave configurada>`
+  - Respuesta esperada: HTTP 200 con `{"result":"allow"}` o `{"result":"deny"}`.
+- **Sondeo de Salud (GET healthUrl):**
+  - Método: `GET` (rápido, de solo lectura, timeout 2 000 ms).
+  - Cabecera opcional: `X-EMQX-API-KEY: <clave configurada>`
+  - Respuesta disponible: Cualquier HTTP < 500 (200, 401, 403, 404 confirman servicio vivo). Códigos 5xx o timeout abren incidente.
+
+## Optional
+
+- [/gateway/llms-full.txt](/gateway/llms-full.txt): Especificación técnica completa consolidada en un único archivo Markdown.

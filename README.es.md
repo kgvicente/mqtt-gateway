@@ -89,6 +89,7 @@ para ver payloads y configuración.
 - Autenticación administrativa interna o delegada a EMQX. Las sesiones internas
   caducan a las ocho horas y se pierden al reiniciar.
 - Rutas y estado operativo en archivos JSON locales, sin base de datos.
+- Integración con Agentes de IA: Asistentes y LLMs pueden consumir la documentación técnica directamente desde [`/llms.txt`](docs/llms.txt) o solicitando `/gateway/docs` con la cabecera `Accept: text/markdown`.
 
 <details>
 <summary>Capturas estáticas del panel y vista móvil</summary>
