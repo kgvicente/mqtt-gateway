@@ -410,6 +410,179 @@
       .table-container {
         max-width: 100%;
       }
+      .prompt-header-btn .prompt-btn-text {
+        display: none;
+      }
+      .prompt-header-btn {
+        padding: 6px 8px;
+      }
+      .agent-card-header {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .agent-card {
+        padding: 16px 14px;
+        margin: 20px 0;
+      }
+      .copy-prompt-btn {
+        justify-content: center;
+      }
+      .agent-card-footer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+      }
+    }
+
+    /* Estilos de Integración con Agentes de IA (Agent-First) */
+    .prompt-header-btn {
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+    .prompt-header-btn:hover {
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+    .prompt-header-btn.copied {
+      background: #16a34a !important;
+      color: #ffffff !important;
+      border-color: #16a34a !important;
+    }
+    .agent-card {
+      margin: 28px 0 36px;
+      background: var(--sidebar);
+      border: 1px solid var(--line);
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      padding: 22px 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      transition: background .2s ease, border-color .2s ease;
+    }
+    .agent-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .agent-card-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .agent-badge {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid var(--accent);
+    }
+    .agent-card-desc {
+      margin: 0 0 14px;
+      font-size: 14px;
+      color: var(--p-ink);
+      line-height: 1.55;
+    }
+    .agent-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 8px;
+      overflow-x: auto;
+    }
+    .agent-tab-btn {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 500;
+      padding: 5px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background .15s, color .15s, border-color .15s;
+      white-space: nowrap;
+    }
+    .agent-tab-btn:hover {
+      color: var(--ink);
+      background: var(--nav-hover);
+    }
+    .agent-tab-btn.active {
+      color: var(--accent);
+      background: var(--accent-soft);
+      border-color: var(--line);
+      font-weight: 600;
+    }
+    .agent-prompt-wrapper {
+      position: relative;
+    }
+    .agent-prompt-box {
+      margin: 0;
+      background: var(--code-bg);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 14px 16px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--code-ink);
+      white-space: pre-wrap;
+      word-break: break-word;
+      user-select: all;
+    }
+    .copy-prompt-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--accent);
+      color: #ffffff;
+      border: 1px solid transparent;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.1s ease, color 0.15s ease;
+      white-space: nowrap;
+    }
+    html[data-theme="dark"] .copy-prompt-btn {
+      color: #111215;
+    }
+    .copy-prompt-btn:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+    .copy-prompt-btn:active {
+      transform: translateY(0);
+    }
+    .copy-prompt-btn.copied {
+      background: #16a34a !important;
+      color: #ffffff !important;
+    }
+    .agent-card-footer {
+      margin-top: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--muted);
+      flex-wrap: wrap;
+    }
+    .agent-card-footer a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .agent-card-footer a:hover {
+      text-decoration: underline;
     }
   </style>
 </head>
@@ -422,6 +595,13 @@
       <span class="header-subtitle">Documentación para Desarrolladores</span>
     </div>
     <div class="header-right">
+      <button type="button" id="header-copy-prompt-btn" class="header-btn prompt-header-btn" title="Copiar prompt para asistentes de IA (Cursor, Claude, Copilot)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+        <span class="prompt-btn-text">Copiar Prompt IA</span>
+      </button>
       <button type="button" id="theme-toggle" class="header-btn" title="Alternar tema">
         <svg id="theme-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></svg>
         <span id="theme-label">Tema</span>
@@ -449,6 +629,48 @@
       <p class="lead">Especificación contractual de endpoints HTTP requeridos para delegar la autenticación de clientes MQTT, la autorización de tópicos y el sondeo continuo de disponibilidad.</p>
       <p>MQTT Gateway actúa como un proxy inverso de alta velocidad y baja latencia que desacopla EMQX, Mosquitto, VerneMQ y otros brókers de los sistemas y microservicios de backend (IoT Core Service, Device Gateway, Telemetry Service y servicios futuros). Cuando un cliente MQTT se conecta o intenta publicar/suscribirse, el gateway enruta la decisión al backend correspondiente.</p>
       <p>Esta documentación es pública y accesible en <code>/gateway/docs</code> sin necesidad de credenciales ni token administrativo.</p>
+
+      <div class="agent-card" id="agent-setup">
+        <div class="agent-card-header">
+          <div class="agent-card-title">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent)">
+              <rect x="3" y="11" width="18" height="10" rx="2"></rect>
+              <circle cx="12" cy="5" r="2"></circle>
+              <path d="M12 7v4"></path>
+              <line x1="8" y1="16" x2="8" y2="16"></line>
+              <line x1="16" y1="16" x2="16" y2="16"></line>
+            </svg>
+            <span>Desarrollo con Agentes de IA</span>
+            <span class="agent-badge">Agent-First</span>
+          </div>
+          <button type="button" class="copy-prompt-btn" id="card-copy-prompt-btn" title="Copiar prompt al portapapeles">
+            <svg class="copy-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span class="copy-label">Copiar Prompt</span>
+          </button>
+        </div>
+        <p class="agent-card-desc">Copia este prompt en <strong>Cursor</strong>, <strong>Claude Code</strong>, <strong>Copilot</strong> o <strong>ChatGPT</strong> para que tu asistente lea la especificación e implemente o conecte tus servicios automáticamente.</p>
+        <div class="agent-tabs" role="tablist">
+          <button type="button" class="agent-tab-btn active" role="tab" aria-selected="true" data-tab="backend">Implementar Backend HTTP</button>
+          <button type="button" class="agent-tab-btn" role="tab" aria-selected="false" data-tab="broker">Configurar Bróker MQTT</button>
+          <button type="button" class="agent-tab-btn" role="tab" aria-selected="false" data-tab="quickstart">Onboarding Rápido</button>
+        </div>
+        <div class="agent-prompt-wrapper">
+          <pre class="agent-prompt-box" id="agent-prompt-content" tabindex="0">Ayúdame a crear e implementar un servicio de backend HTTP para integrarlo con MQTT Gateway. Lee primero la especificación técnica en https://raw.githubusercontent.com/kgvicente/mqtt-gateway/main/docs/llms.txt (o en el endpoint local /gateway/llms.txt y /gateway/docs.md).
+El servicio debe implementar:
+1. POST /auth: Recibe {"clientid", "username", "password"} y responde HTTP 200 con {"result": "allow"} o {"result": "deny"}.
+2. POST /acl: Recibe {"clientid", "username", "topic", "action": "publish" | "subscribe"} y responde HTTP 200 con {"result": "allow"} o {"result": "deny"}.
+3. GET /health: Sondeo de disponibilidad rápido (debe responder HTTP 200 en &lt; 2000ms).
+4. Seguridad: Validar la cabecera opcional X-EMQX-API-KEY si está configurada.
+Guíame paso a paso con el código y las pruebas.</pre>
+        </div>
+        <div class="agent-card-footer">
+          <span>Los agentes de código pueden consumir directamente la versión Markdown mediante la cabecera <code>Accept: text/markdown</code>.</span>
+          <span>Archivos para agentes: <a href="/gateway/llms.txt" target="_blank" rel="noopener">llms.txt</a> · <a href="/gateway/docs.md" target="_blank" rel="noopener">docs.md</a></span>
+        </div>
+      </div>
 
       <h2>Cabeceras estándar en solicitudes salientes</h2>
       <div class="table-container">
@@ -869,6 +1091,102 @@
       setActiveSection(window.location.hash.slice(1));
     } else {
       onScroll();
+    }
+
+    /* Soporte de Agentes de IA y Botón de Copiado de Prompts */
+    const agentPrompts = {
+      backend: `Ayúdame a crear e implementar un servicio de backend HTTP para integrarlo con MQTT Gateway. Lee primero la especificación técnica en https://raw.githubusercontent.com/kgvicente/mqtt-gateway/main/docs/llms.txt (o en el endpoint local /gateway/llms.txt y /gateway/docs.md).
+El servicio debe implementar:
+1. POST /auth: Recibe {"clientid", "username", "password"} y responde HTTP 200 con {"result": "allow"} o {"result": "deny"}.
+2. POST /acl: Recibe {"clientid", "username", "topic", "action": "publish" | "subscribe"} y responde HTTP 200 con {"result": "allow"} o {"result": "deny"}.
+3. GET /health: Sondeo de disponibilidad rápido (debe responder HTTP 200 en < 2000ms).
+4. Seguridad: Validar la cabecera opcional X-EMQX-API-KEY si está configurada.
+Guíame paso a paso con el código y las pruebas.`,
+
+      broker: `Ayúdame a configurar la autenticación y autorización HTTP en mi bróker MQTT para conectarlo con MQTT Gateway. Consulta la especificación en https://raw.githubusercontent.com/kgvicente/mqtt-gateway/main/docs/llms.txt (o /gateway/docs.md).
+Adaptadores disponibles:
+- EMQX: POST /api/v1/gateway/emqx/auth y POST /api/v1/gateway/emqx/acl
+- Mosquitto (mosquitto-go-auth): POST /api/v1/gateway/mosquitto/auth y /acl
+- VerneMQ (webhooks): POST /api/v1/gateway/vernemq/auth y /acl
+- Genérico: POST /api/v1/gateway/generic/auth y /acl
+Guíame con la configuración del bróker y en la creación de las rutas y prefijos correspondientes.`,
+
+      quickstart: `Ayúdame a entender la arquitectura y configurar MQTT Gateway. Lee primero la guía técnica en https://raw.githubusercontent.com/kgvicente/mqtt-gateway/main/docs/llms.txt (o /gateway/docs.md) y acompáñame paso a paso en el despliegue y la integración de mis servicios.`
+    };
+
+    let activePromptKey = 'backend';
+    const promptContentEl = document.getElementById('agent-prompt-content');
+    const tabBtns = Array.from(document.querySelectorAll('.agent-tab-btn'));
+    const cardCopyBtn = document.getElementById('card-copy-prompt-btn');
+    const headerCopyBtn = document.getElementById('header-copy-prompt-btn');
+
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', function() {
+        const tabKey = this.getAttribute('data-tab');
+        if (!tabKey || !agentPrompts[tabKey]) return;
+        activePromptKey = tabKey;
+        tabBtns.forEach(b => {
+          b.classList.remove('active');
+          b.setAttribute('aria-selected', 'false');
+        });
+        this.classList.add('active');
+        this.setAttribute('aria-selected', 'true');
+        if (promptContentEl) {
+          promptContentEl.textContent = agentPrompts[tabKey];
+        }
+      });
+    });
+
+    async function triggerCopy(text, btn, successText, originalText) {
+      if (!text) return;
+      let ok = false;
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(text);
+          ok = true;
+        }
+      } catch (err) {
+        ok = false;
+      }
+
+      if (!ok) {
+        try {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          ok = document.execCommand('copy');
+          document.body.removeChild(ta);
+        } catch (e) {
+          ok = false;
+        }
+      }
+
+      if (btn) {
+        const labelEl = btn.querySelector('.copy-label') || btn.querySelector('.prompt-btn-text');
+        btn.classList.add('copied');
+        if (labelEl) labelEl.textContent = successText;
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          if (labelEl) labelEl.textContent = originalText;
+        }, 2000);
+      }
+    }
+
+    if (cardCopyBtn) {
+      cardCopyBtn.addEventListener('click', () => {
+        const text = promptContentEl ? promptContentEl.textContent : (agentPrompts[activePromptKey] || '');
+        triggerCopy(text, cardCopyBtn, '¡Copiado!', 'Copiar Prompt');
+      });
+    }
+
+    if (headerCopyBtn) {
+      headerCopyBtn.addEventListener('click', () => {
+        const text = agentPrompts[activePromptKey] || agentPrompts.backend;
+        triggerCopy(text, headerCopyBtn, '¡Copiado!', 'Copiar Prompt IA');
+      });
     }
   </script>
 </body>
