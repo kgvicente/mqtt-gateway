@@ -178,11 +178,38 @@ label input,label textarea{margin-top:4px}
 .check{display:flex;align-items:center;gap:8px}
 .check input{width:auto}
 
-.login{max-width:400px;margin:8vh auto;border:1px solid var(--border);border-radius:8px;background:var(--panel);padding:26px}
-.login h1{font-size:22px;margin-bottom:4px}
-.login label{margin-top:14px}
-.login button{margin-top:20px;width:100%}
-.login details{margin-top:18px;color:var(--muted);font-size:12px}
+/* ponytail: el estado visible del formulario define el layout sin otra bandera JS. */
+body:has(#login:not([hidden])){--panel:#fcfcfd;--input-bg:#f1f3f5;--text:#172027;--muted:#54616d;--border:#dce2e7;--hover:#e9edf0;--tag-bg:#f1f3f5;--login-accent:#006f65;--login-button-text:#fcfcfd;--login-selection:#c7ebe3;--red-light:#a32623}
+html[data-theme="dark"] body:has(#login:not([hidden])){--panel:#121419;--input-bg:#20242c;--text:#edf0f4;--muted:#a4afbd;--border:#303641;--hover:#292f39;--tag-bg:#20242c;--login-accent:#69d5c5;--login-button-text:#121419;--login-selection:#284f49;--red-light:#ffaca8}
+body:has(#login:not([hidden])) ::selection{background:var(--login-selection);color:var(--text)}
+body:has(#login:not([hidden])) :focus-visible{outline-color:var(--login-accent)}
+.login .primary{background:var(--login-accent);border-color:var(--login-accent);color:var(--login-button-text)}
+.login .primary:hover{background:var(--login-accent);border-color:var(--login-accent);filter:brightness(.94)}
+.login input{caret-color:var(--login-accent)}
+body:has(#login:not([hidden])){min-height:100svh;display:flex;flex-direction:column;justify-content:center;background:var(--panel)}
+body:has(#login:not([hidden]))>main{display:grid;place-items:center;width:100%;padding:48px 24px 24px}
+body:has(#login:not([hidden]))>header{order:2;justify-content:center;height:auto;min-height:64px;padding:12px 24px 28px;background:transparent;border:0}
+body:has(#login:not([hidden]))>header .brand{display:none}
+.login{width:100%;max-width:420px;margin:0 auto;padding:0}
+.login[hidden]{display:none}
+.login h1{text-align:center;font-size:clamp(36px,6vw,48px);font-weight:300;line-height:1.25;letter-spacing:-1px;margin:0 0 42px}
+.login-panel{padding:0;background:none;border:0}
+.login .login-note{text-align:center;margin:40px 0 0;font-size:12px;line-height:1.8;color:var(--muted)}
+.login-field{position:relative;margin-top:20px}
+.login-field>svg{position:absolute;top:14px;left:12px;color:var(--muted);pointer-events:none}
+.login .login-field>input{margin:0;padding-left:38px}
+.login input::placeholder{color:var(--muted);opacity:1}
+.login .password-field{margin-top:20px}
+.login-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.login label{margin-top:18px;font-size:13px;font-weight:500;color:var(--text)}
+.login input{display:block;width:100%;min-height:44px;margin-top:8px}
+.login button[type="submit"]{margin-top:24px;width:100%;min-height:44px}
+.password-field{position:relative;margin-top:8px}
+.password-field input{margin:0;padding-right:48px}
+.login .password-toggle{position:absolute;right:3px;top:3px;width:38px;height:38px;padding:8px;border:0;color:var(--muted)}
+.login .password-toggle:hover{color:var(--text)}
+#login-error{margin-top:20px;padding:12px 14px;color:var(--red-light);border-color:currentColor;line-height:1.6;overflow-wrap:anywhere}
+html[data-theme="light"] #login-error{color:#9b211c}
 footer{padding-top:26px;color:var(--muted);display:flex;justify-content:space-between;font-size:12px}
 .loading{color:var(--muted);padding:28px;text-align:center}
 
@@ -257,7 +284,6 @@ html[data-theme="light"] .hb-swatch.good{background:var(--teal-dark);border:1px 
   .filters{flex-direction:column;align-items:stretch}
   .filters input{max-width:none}
   .form-grid{grid-template-columns:1fr}
-  .login{margin:4vh 10px}
 }
 
 /* Dimensiones del monitor: permitir contracci?n real en grid y canvas. */
@@ -331,20 +357,21 @@ select{font:inherit;background:var(--input-bg);color:var(--text);border:1px soli
 
 <main>
 <section id="login" class="login" aria-labelledby="login-title">
-  <h1 id="login-title">Acceso al Gateway</h1>
-  <p>Ingresa tus credenciales administrativas.</p>
+  <div class="login-panel">
+  <h1 id="login-title">MQTT Gateway</h1>
   <form id="login-form">
-    <label>Usuario<input id="username" autocomplete="username" required></label>
-    <label>Contraseña<input id="password" type="password" autocomplete="current-password" required></label>
+    <label class="login-label" for="username">Usuario</label>
+    <div class="login-field"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg><input id="username" name="username" placeholder="Usuario" autocomplete="username" autocapitalize="none" spellcheck="false" required></div>
+    <label class="login-label" for="password">Contraseña</label>
+    <div class="password-field login-field"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V6a4 4 0 0 1 8 0v4"/></svg>
+      <input id="password" name="password" placeholder="Contrase&#241;a" type="password" autocomplete="current-password" required>
+      <button type="button" class="password-toggle" id="password-toggle" aria-label="Mostrar contraseña" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg></button>
+    </div>
     <button class="primary" type="submit">Iniciar sesión</button>
   </form>
-  <details><summary>Usar token existente</summary>
-    <form id="token-form">
-      <label>Token Bearer<input id="token-input" type="password" autocomplete="off" required></label>
-      <button type="submit">Verificar token</button>
-    </form>
-  </details>
   <div id="login-error" class="message" role="alert" hidden></div>
+  <p class="login-note">Panel de administraci&#243;n de MQTT Gateway</p>
+  </div>
 </section>
 
 <section id="workspace" hidden>
@@ -805,7 +832,6 @@ async function enter(candidate) {
   $('#workspace').hidden = false;
   $('#logout').hidden = false;
   $('#password').value = '';
-  $('#token-input').value = '';
   await refresh();
 }
 
@@ -1394,6 +1420,14 @@ $('#delete-confirm-form').onsubmit = async e => {
   await refresh();
 };
 
+// ponytail: alternar el tipo nativo conserva el autocompletado sin otra dependencia.
+$('#password-toggle').onclick = () => {
+  const visible = $('#password').type === 'password';
+  $('#password').type = visible ? 'text' : 'password';
+  $('#password-toggle').setAttribute('aria-pressed', String(visible));
+  $('#password-toggle').setAttribute('aria-label', visible ? 'Ocultar contraseña' : 'Mostrar contraseña');
+};
+
 $('#login-form').onsubmit = async e => {
   e.preventDefault();
   const button = e.target.querySelector('button');
@@ -1413,18 +1447,8 @@ $('#login-form').onsubmit = async e => {
   } finally {
     loading(button, false);
   }
-  await refresh();
 };
 
-$('#token-form').onsubmit = async e => {
-  e.preventDefault();
-  try {
-    await enter($('#token-input').value.trim());
-  } catch (error) {
-    $('#login-error').textContent = error.message;
-    $('#login-error').hidden = false;
-  }
-};
 
 window.addEventListener('message', async e => {
   const tokenCandidate = e.data?.token || e.data?.gatewayToken || e.data?.emqxToken;
