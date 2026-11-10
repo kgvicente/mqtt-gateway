@@ -1,0 +1,16 @@
+MQTT Gateway
+Copyright (c) 2026 kgvicente y colaboradores de MQTT Gateway.
+
+El código propio se distribuye bajo PolyForm Noncommercial License 1.0.0.
+La licencia del proyecto no sustituye las licencias de sus componentes de terceros.
+
+Componentes incluidos en el repositorio:
+
+- Chart.js 4.4.7: MIT; licenses/Chart.js-MIT.txt.
+- @kurkle/color 0.3.2, incluido en Chart.js: MIT; licenses/kurkle-color-MIT.txt.
+- Apache Maven Wrapper 3.3.4: Apache-2.0; licenses/Apache-2.0.txt y
+  licenses/Maven-Wrapper-NOTICE.txt.
+
+Se conservan los avisos originales dentro de los archivos de terceros.
+Las dependencias descargadas durante la compilación conservan sus propias
+licencias y avisos; no quedan relicenciadas por este proyecto.

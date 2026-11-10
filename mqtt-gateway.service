@@ -1,0 +1,17 @@
+[Unit]
+Description=Universal MQTT Auth & ACL Gateway
+After=network.target
+
+[Service]
+Type=simple
+User=mqtt-gateway
+Group=mqtt-gateway
+WorkingDirectory=/opt/mqtt-gateway
+EnvironmentFile=-/etc/default/mqtt-gateway
+ExecStart=/opt/mqtt-gateway/target/mqtt-gateway-1.0.0-SNAPSHOT-runner
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

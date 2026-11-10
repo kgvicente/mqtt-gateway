@@ -1,0 +1,46 @@
+quarkus:
+  http:
+    host: 127.0.0.1
+    port: 8085
+    static-resources:
+      caching-enabled: false
+      max-age: 0
+    header:
+      X-Frame-Options:
+        value: SAMEORIGIN
+      X-Content-Type-Options:
+        value: nosniff
+      Referrer-Policy:
+        value: no-referrer
+      Content-Security-Policy:
+        value: "frame-ancestors 'self'; object-src 'none'; base-uri 'self'"
+  native:
+    builder-image: quay.io/quarkus/ubi9-quarkus-mandrel-builder-image:jdk-25
+    native-image-xmx: 2g
+    additional-build-args: "-J-XX:ActiveProcessorCount=2"
+gateway:
+  admin:
+    auth-provider: ${GATEWAY_ADMIN_AUTH_PROVIDER:internal}
+    username: ${GATEWAY_ADMIN_USERNAME:admin}
+    password: ${GATEWAY_ADMIN_PASSWORD:admin-secret-2026$}
+  superuser:
+    username: ${EMQX_SUPERUSER_USERNAME:backend-system-client}
+    password: ${EMQX_SUPERUSER_PASSWORD:backend-system-password-2026$}
+  timeout-ms: 2000
+  global-topics: [heart, ping]
+  auth:
+    - prefixes: [core_, android_, ios_, web_]
+      url: http://127.0.0.1:8090/api/v1/emqx/auth
+      api-key: ${EMQX_BACKEND_API_KEY:}
+    - prefixes: [dev_]
+      url: http://127.0.0.1:8091/api/v1/emqx/auth
+    - prefixes: [tel_]
+      url: http://127.0.0.1:8080/api/v1/emqx/auth
+  acl:
+    - prefixes: [v1/, core/]
+      url: http://127.0.0.1:8090/api/v1/emqx/acl
+      api-key: ${EMQX_BACKEND_API_KEY:}
+    - prefixes: [dev/]
+      url: http://127.0.0.1:8091/api/v1/emqx/acl
+    - prefixes: [tel/]
+      url: http://127.0.0.1:8080/api/v1/emqx/acl

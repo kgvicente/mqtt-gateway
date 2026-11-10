@@ -1,0 +1,1477 @@
+﻿<!doctype html>
+<html lang="es" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>MQTT Gateway</title>
+<script src="chart.umd.min.js"></script>
+<style>
+:root{
+  --teal:#00BFB3;
+  --teal-dark:#008B82;
+  --amber:#FEC514;
+  --red:#BD271E;
+  --red-light:#FF7068;
+  --blue:#0077CC;
+  --blue-hover:#0064AA;
+}
+html[data-theme="dark"]{
+  color-scheme:dark;
+  --canvas:#1D1E24;
+  --panel:#25272F;
+  --panel-elevated:#2C2E38;
+  --border:#343741;
+  --border-subtle:#2A2D36;
+  --header:#18191E;
+  --text:#DFE5EF;
+  --muted:#98A2B3;
+  --hover:#343741;
+  --input-bg:#1D1E24;
+  --tag-bg:#18191E;
+  --chart-grid:rgba(255,255,255,0.07);
+  --bar-empty:#2C2E38;
+  --dialog-backdrop:rgba(0,0,0,0.65);
+}
+html[data-theme="light"]{
+  color-scheme:light;
+  --canvas:#F5F7FA;
+  --panel:#FFFFFF;
+  --panel-elevated:#F9FAFC;
+  --border:#D3DAE6;
+  --border-subtle:#E6EAF0;
+  --header:#FFFFFF;
+  --text:#1A1C21;
+  --muted:#535B69;
+  --hover:#EDF1F7;
+  --input-bg:#FFFFFF;
+  --tag-bg:#F0F3F7;
+  --chart-grid:rgba(0,0,0,0.06);
+  --bar-empty:#E4E7ED;
+  --dialog-backdrop:rgba(0,0,0,0.4);
+}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--canvas);color:var(--text);font:14px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+button,input,textarea{font:inherit}
+button{cursor:pointer;border:1px solid var(--border);border-radius:4px;background:transparent;color:var(--text);padding:7px 12px;display:inline-flex;align-items:center;justify-content:center;gap:7px;transition:background .15s,border-color .15s}
+button:hover{background:var(--hover)}
+button:disabled{cursor:wait;opacity:.55}
+.primary{background:var(--blue);border-color:var(--blue);color:#FFF}
+.primary:hover{background:var(--blue-hover);border-color:var(--blue-hover)}
+.primary.danger,button.primary.danger{background:var(--red);border-color:var(--red);color:#FFF!important}
+.primary.danger:hover,button.primary.danger:hover{background:#dc2626;border-color:#dc2626}
+.secondary{background:var(--panel-elevated);border-color:var(--border)}
+.secondary:hover{background:var(--hover)}
+.danger{color:var(--red-light)}
+.danger:hover{background:rgba(189,39,30,0.15);border-color:var(--red)}
+:focus-visible{outline:2px solid #76B8FF;outline-offset:2px}
+a{color:var(--blue);text-decoration:none}
+a:hover{text-decoration:underline}
+svg{width:16px;height:16px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+header{height:60px;background:var(--header);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:600;letter-spacing:-.2px}
+.brand>svg{color:var(--teal);width:24px;height:24px}
+.header-actions{display:flex;gap:10px;align-items:center}
+.docs-link{font-size:12px;color:var(--muted);text-decoration:none;padding:4px 9px;border:1px solid var(--border);border-radius:5px;font-weight:550;display:inline-flex;align-items:center;gap:5px;transition:all .15s}
+.docs-link:hover{background:var(--hover);color:var(--text);border-color:var(--text)}
+.theme-switch{display:inline-flex;background:var(--tag-bg);border:1px solid var(--border);border-radius:5px;padding:2px;gap:2px}
+.theme-switch button{border:0;border-radius:3px;background:transparent;color:var(--muted);padding:4px;width:28px;height:26px}
+.theme-switch button:hover{background:var(--hover);color:var(--text)}
+.theme-switch button.active{background:var(--panel);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,0.08)}
+
+main{max-width:1400px;margin:auto;padding:24px}
+h1{font-size:24px;letter-spacing:-.5px;font-weight:600;margin:0}
+h2{font-size:15px;font-weight:600;margin:0}
+p{color:var(--muted);margin:5px 0 0;max-width:80ch}
+.technical{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+.dot{width:7px;height:7px;border-radius:50%;background:currentColor;display:inline-block}
+
+.title-row,.section-heading{display:flex;justify-content:space-between;align-items:center;gap:16px}
+.title-row{margin-bottom:22px}
+.title-actions{display:flex;gap:8px}
+
+nav#main-nav{display:flex;border-bottom:1px solid var(--border);gap:24px;margin-bottom:22px;overflow:auto}
+nav#main-nav button{border:0;border-bottom:2px solid transparent;border-radius:0;padding:10px 0;white-space:nowrap;color:var(--muted)}
+nav#main-nav button.active{border-bottom-color:var(--teal);color:var(--text);font-weight:550}
+nav#main-nav button:hover{background:transparent;color:var(--text)}
+.count{background:var(--tag-bg);border:1px solid var(--border);padding:1px 6px;border-radius:4px;font:12px ui-monospace,monospace}
+
+.summary{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--border);background:var(--panel);border-radius:6px;margin-bottom:22px}
+.summary>div{padding:14px 18px;border-right:1px solid var(--border)}
+.summary>div:last-child{border:0}
+.summary small{color:var(--muted);font-size:12px}
+.summary strong{display:block;font:24px/1.4 ui-monospace,monospace;margin-top:2px}
+
+.section-heading{margin:0 0 14px}
+.hint{font-size:12px;color:var(--muted)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px}
+.card{border:1px solid var(--border);background:var(--panel);border-radius:6px;overflow:hidden;transition:border-color .15s}
+.card:hover{border-color:#535966}
+.card-head{padding:16px 18px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.backend-label{display:flex;gap:8px;align-items:center;font-size:15px;font-weight:600}
+.backend-label svg{color:var(--muted)}
+.card-title-btn{border:0;background:transparent;padding:0;font:inherit;color:inherit;cursor:pointer;text-align:left}
+.card-title-btn:hover{color:var(--blue);text-decoration:underline}
+
+.badge{display:inline-flex;gap:6px;align-items:center;border-radius:20px;border:1px solid currentColor;padding:2px 8px;font-size:12px;font-weight:500;white-space:nowrap}
+.good{color:var(--teal)}
+html[data-theme="light"] .good{color:var(--teal-dark)}
+.warn{color:var(--amber)}
+.bad{color:var(--red-light)}
+html[data-theme="light"] .bad{color:var(--red)}
+html[data-theme="light"] .warn,html[data-theme="light"] .message{color:#855000;border-color:#a56a00}
+#delete-error{color:var(--red-light);border-color:currentColor}
+html[data-theme="light"] #delete-error{color:#9b211c}
+.neutral{color:var(--muted)}
+.card.offline{border-top:2px solid var(--red)}
+
+.endpoint{font:12px ui-monospace,monospace;color:var(--muted);margin-top:5px;word-break:break-all}
+.latency{padding:0 18px 12px;display:flex;align-items:baseline;justify-content:space-between}
+.latency strong{font:30px ui-monospace,monospace;letter-spacing:-1px}
+.latency strong small{font-size:13px;color:var(--muted);letter-spacing:0}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);padding:10px 18px;gap:8px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--panel-elevated)}
+.metrics small{display:block;color:var(--muted);font-size:12px}
+.metrics b{font:12px ui-monospace,monospace}
+.uptime{padding:14px 18px}
+.uptime-line{display:flex;justify-content:space-between;font-size:12px}
+.bar{height:4px;background:var(--border);border-radius:2px;margin:7px 0;overflow:hidden}
+.bar span{display:block;height:100%;background:var(--teal);border-radius:2px}
+html[data-theme="light"] .bar span{background:var(--teal-dark)}
+.prefixes{margin-top:10px;display:flex;flex-wrap:wrap;gap:4px}
+.prefix{font:12px ui-monospace,monospace;background:var(--tag-bg);border:1px solid var(--border);padding:2px 5px;border-radius:3px}
+.card-footer{border-top:1px solid var(--border);padding:10px 18px;display:flex;justify-content:space-between;align-items:center;gap:6px}
+.card-footer button{font-size:12px;padding:6px 10px;min-height:38px;min-width:38px;display:inline-flex;align-items:center;justify-content:center}
+.card-menu{display:flex;gap:6px}
+
+.table-wrap{overflow:auto}
+table{width:100%;border-collapse:separate;border-spacing:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;background:var(--panel);text-align:left;font-size:12px}
+th{background:var(--header);color:var(--muted);font-weight:550;white-space:nowrap}
+td,th{padding:12px 16px;border-bottom:1px solid var(--border)}
+tr:last-child td{border-bottom:0}
+td{max-width:320px;overflow-wrap:anywhere}
+.filters{display:flex;gap:10px;margin-bottom:14px;align-items:center}
+.filters input{max-width:280px}
+input,textarea{width:100%;background:var(--input-bg);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:8px 10px}
+input:focus,textarea:focus{border-color:var(--blue);outline:none}
+textarea{min-height:70px;resize:vertical}
+.empty:not(.hb-bar):not(.hb-swatch){padding:32px;text-align:center;color:var(--muted)}
+.message{padding:10px 14px;border:1px solid var(--amber);color:var(--amber);background:var(--panel);border-radius:4px;margin-bottom:16px;font-size:13px}
+[hidden]{display:none!important}
+
+/* Modal notice: clean card, without any vertical accent border */
+.modal-notice{margin-top:16px;font-size:12px;line-height:1.55;color:var(--muted);background:var(--tag-bg);border:1px solid var(--border);border-radius:4px;padding:10px 13px}
+
+dialog{border:1px solid var(--border);border-radius:8px;background:var(--panel);color:var(--text);padding:22px;width:min(600px,calc(100% - 32px));max-height:90vh;overflow:auto;box-shadow:0 12px 36px rgba(0,0,0,0.3)}
+dialog::backdrop{background:var(--dialog-backdrop)}
+dialog h2{font-size:18px;margin-bottom:4px}
+.dialog-head{display:flex;align-items:center;justify-content:space-between}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px}
+label{display:block;font-size:12px;color:var(--muted)}
+label input,label textarea{margin-top:4px}
+.full{grid-column:1/-1}
+.form-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+.check{display:flex;align-items:center;gap:8px}
+.check input{width:auto}
+
+.login{max-width:400px;margin:8vh auto;border:1px solid var(--border);border-radius:8px;background:var(--panel);padding:26px}
+.login h1{font-size:22px;margin-bottom:4px}
+.login label{margin-top:14px}
+.login button{margin-top:20px;width:100%}
+.login details{margin-top:18px;color:var(--muted);font-size:12px}
+footer{padding-top:26px;color:var(--muted);display:flex;justify-content:space-between;font-size:12px}
+.loading{color:var(--muted);padding:28px;text-align:center}
+
+/* Detail View Layout (Elastic / Cloudflare Style) */
+#backend-detail{margin-top:0}
+.breadcrumb-bar{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-bottom:16px}
+.breadcrumb-back{border:0;background:transparent;padding:4px 8px;border-radius:4px;color:var(--blue);font-size:13px;font-weight:500;display:inline-flex;align-items:center;gap:5px}
+.breadcrumb-back:hover{background:var(--hover);text-decoration:underline}
+.breadcrumb-sep{color:var(--border);user-select:none}
+.breadcrumb-current{color:var(--text);font-weight:600}
+
+.detail-head{display:flex;justify-content:space-between;align-items:flex-start;gap:20px;margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--border)}
+.detail-head-left h1{font-size:26px;margin:0}
+.detail-head-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.detail-actions{display:flex;gap:8px}
+.detail-last-probe{font-size:12px;color:var(--muted)}
+
+.kpi-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+.kpi-card{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:16px 18px;display:flex;flex-direction:column;justify-content:space-between}
+.kpi-label{font-size:12px;color:var(--muted);margin-bottom:4px}
+.kpi-val{font:28px/1.2 ui-monospace,monospace;font-weight:600}
+.kpi-sub{font-size:12px;color:var(--muted);margin-top:4px}
+.spark-box{position:relative;width:100%;height:36px;margin-top:8px}
+
+.detail-split{display:grid;grid-template-columns:minmax(0, 360px) minmax(0, 1fr);gap:16px;margin-bottom:16px}
+.detail-split > *{min-width:0}
+.detail-panel{background:var(--panel);border:1px solid var(--border);border-radius:6px;padding:16px 18px}
+.detail-split > .detail-panel:last-child{display:flex;flex-direction:column}
+.panel-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.specs-list{display:flex;flex-direction:column;gap:10px}
+.spec-item{display:flex;flex-direction:column;gap:2px}
+.spec-item label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px}
+.spec-item .spec-val{font-size:13px;word-break:break-all}
+
+.chart-stats{display:flex;gap:12px;font:12px ui-monospace,monospace;color:var(--muted)}
+.chart-box{width:100%;flex:1 1 auto;min-height:300px;height:100%;position:relative}
+
+/* Heartbeat Grid: 24 strictly identical rounded blocks */
+.heartbeat-strip{display:grid;grid-template-columns:repeat(24,1fr);gap:5px;height:34px;min-height:34px;max-height:34px;box-sizing:border-box;align-items:stretch;overflow:hidden}
+.hb-bar{display:block;height:34px;min-height:34px;max-height:34px;border-radius:3px;box-sizing:border-box;padding:0!important;margin:0!important;transition:filter .12s ease;cursor:default}
+.hb-bar:hover{filter:brightness(1.3);box-shadow:0 0 0 1px currentColor}
+.hb-bar:focus-visible{outline:2px solid var(--blue);outline-offset:2px;filter:brightness(1.3)}
+.hb-bar.good{background:var(--teal);border:1px solid var(--teal)}
+html[data-theme="light"] .hb-bar.good{background:var(--teal-dark);border:1px solid var(--teal-dark)}
+.hb-bar.bad{background:var(--red);border:1px solid var(--red)}
+.hb-bar.hb-empty,.hb-bar.empty{background:var(--bar-empty);border:1px solid var(--border);padding:0!important;margin:0!important}
+
+.hb-legend{display:flex;gap:16px;font-size:12px;color:var(--muted);align-items:center}
+.hb-legend span{display:inline-flex;align-items:center;gap:6px}
+.hb-swatch{display:inline-block;width:9px;height:14px;border-radius:2px;box-sizing:border-box;padding:0!important;margin:0!important}
+.hb-swatch.good{background:var(--teal);border:1px solid var(--teal)}
+html[data-theme="light"] .hb-swatch.good{background:var(--teal-dark);border:1px solid var(--teal-dark)}
+.hb-swatch.bad{background:var(--red);border:1px solid var(--red)}
+.hb-swatch.hb-empty,.hb-swatch.empty{background:var(--bar-empty);border:1px solid var(--border);padding:0!important;margin:0!important}
+
+@media(max-width:1100px){
+  .detail-split{grid-template-columns:1fr}
+  .summary{grid-template-columns:repeat(2,1fr)}
+  .summary>div:nth-child(2){border-right:0}
+  .summary>div{border-bottom:1px solid var(--border)}
+}
+@media(max-width:720px){
+  header{padding:8px 12px;height:auto;min-height:54px;flex-wrap:wrap;gap:8px}
+  .header-actions{gap:6px;flex-wrap:wrap}
+  .brand{font-size:14px}
+  main{padding:16px 12px}
+  .title-row{flex-direction:column;align-items:flex-start}
+  .cards{grid-template-columns:1fr}
+  .kpi-grid{grid-template-columns:1fr}
+  .detail-head{flex-direction:column;align-items:flex-start}
+  .detail-head-right{align-items:flex-start}
+  .filters{flex-direction:column;align-items:stretch}
+  .filters input{max-width:none}
+  .form-grid{grid-template-columns:1fr}
+  .login{margin:4vh 10px}
+}
+
+/* Dimensiones del monitor: permitir contracci?n real en grid y canvas. */
+.detail-split{grid-template-columns:360px minmax(0,1fr)}
+.detail-panel,.kpi-card,.spec-item,.detail-head-left{min-width:0}
+#det-spec-auth,#det-spec-acl,#det-spec-health{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;word-break:normal;max-width:100%}
+.chart-box,.spark-box{min-width:0}
+.chart-box canvas,.spark-box canvas{max-width:100%}
+.heartbeat-strip{grid-template-columns:repeat(24,minmax(0,1fr))}
+.hb-bar{min-width:0}
+.panel-head{gap:12px;flex-wrap:wrap}
+.chart-stats,.hb-legend{flex-wrap:wrap}
+.hb-legend .hb-swatch{padding:0;flex:0 0 9px;width:9px;height:14px;min-height:0}
+@media(max-width:1100px){.detail-split{grid-template-columns:minmax(0,1fr)}}
+
+/* ponytail: estados nativos compartidos, sin otra biblioteca de componentes. */
+@keyframes spin{to{transform:rotate(360deg)}}
+.is-loading::before{content:"";width:14px;height:14px;flex:0 0 14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .8s linear infinite}
+.is-loading>svg{display:none}
+button:disabled{cursor:wait}
+.view-toggle{display:flex;gap:2px;border:1px solid var(--border);border-radius:5px;padding:2px}
+.view-toggle button{border:0;min-height:36px}
+.view-toggle button[aria-pressed="true"]{background:var(--hover);color:var(--text)}
+.range-control{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+select{font:inherit;background:var(--input-bg);color:var(--text);border:1px solid var(--border);border-radius:4px;padding:7px;min-height:36px}
+.pagination{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0;font-size:12px;color:var(--muted)}
+.pagination label{display:flex;gap:8px;align-items:center}
+.pagination .page-info{margin-right:auto;font-variant-numeric:tabular-nums}
+.pagination button{min-height:36px}
+.routes-table{min-width:900px;table-layout:fixed}
+.routes-table th:first-child{width:190px}.routes-table th:last-child{width:250px}
+.routes-table td{overflow-wrap:anywhere}
+.routes-table .route-health{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.routes-table .card-menu{flex-wrap:wrap}
+.routes-table .card-menu button{min-width:36px;min-height:36px}
+.table-name{padding:0;border:0;color:var(--text);text-align:left;font-weight:600;white-space:normal}
+.probe-toast{position:fixed;right:24px;bottom:24px;width:min(430px,calc(100% - 32px));background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.22);z-index:10;transition:opacity .18s ease,transform .18s ease}
+.probe-toast.is-closing{opacity:0;transform:translateY(8px)}
+.toast-heading{display:flex;gap:10px;align-items:center}.toast-heading strong{flex:1;overflow-wrap:anywhere}
+.toast-heading button{width:36px;height:36px;padding:0;font-size:23px;flex-shrink:0}
+.toast-meta{display:flex;gap:12px;align-items:center;margin:8px 0;font-variant-numeric:tabular-nums}
+.probe-toast p{font-size:13px;margin:0}
+.delete-danger{background:#a51e19;border-color:#a51e19;color:white}.delete-danger:hover{background:#841813;border-color:#841813}
+#delete-confirm-dialog label{display:block;margin-top:18px}
+#delete-confirm-dialog input{display:block;width:100%;margin-top:6px}
+#delete-confirm-dialog .message{margin-top:12px}
+.section-heading{flex-wrap:wrap}.range-summary{font-size:12px;color:var(--muted);margin:10px 0}
+@media(max-width:720px){.probe-toast{right:16px;bottom:16px}.filters{align-items:stretch}.range-control{flex-wrap:wrap}.section-heading{gap:12px}.pagination{gap:8px}.pagination .page-info{flex-basis:100%}}
+@media(prefers-reduced-motion:reduce){.is-loading::before{animation:none}.probe-toast{transition:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7 12 2l9 5v10l-9 5-9-5Z"/><path d="m3 7 9 5 9-5M12 12v10"/></svg>
+    MQTT Gateway
+  </div>
+  <div class="header-actions">
+    <a href="/gateway/docs" target="_blank" class="docs-link" title="Referencia de integración HTTP para desarrolladores">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+      Docs
+    </a>
+    <div class="theme-switch" role="radiogroup" aria-label="Tema visual">
+      <button type="button" id="theme-light" data-val="light" title="Modo claro" aria-label="Modo claro"></button>
+      <button type="button" id="theme-dark" data-val="dark" title="Modo oscuro" aria-label="Modo oscuro"></button>
+      <button type="button" id="theme-system" data-val="system" title="Tema del sistema" aria-label="Tema del sistema"></button>
+    </div>
+    <button id="logout" hidden>Salir</button>
+  </div>
+</header>
+
+<main>
+<section id="login" class="login" aria-labelledby="login-title">
+  <h1 id="login-title">Acceso al Gateway</h1>
+  <p>Ingresa tus credenciales administrativas.</p>
+  <form id="login-form">
+    <label>Usuario<input id="username" autocomplete="username" required></label>
+    <label>Contraseña<input id="password" type="password" autocomplete="current-password" required></label>
+    <button class="primary" type="submit">Iniciar sesión</button>
+  </form>
+  <details><summary>Usar token existente</summary>
+    <form id="token-form">
+      <label>Token Bearer<input id="token-input" type="password" autocomplete="off" required></label>
+      <button type="submit">Verificar token</button>
+    </form>
+  </details>
+  <div id="login-error" class="message" role="alert" hidden></div>
+</section>
+
+<section id="workspace" hidden>
+  <div id="notice" class="message" role="status" hidden></div>
+  <!-- Detail view for a specific backend -->
+  <section id="backend-detail" hidden>
+    <nav class="breadcrumb-bar" aria-label="Ruta de navegación">
+      <button type="button" id="back-btn" class="breadcrumb-back"></button>
+      <span class="breadcrumb-sep">/</span>
+      <span class="breadcrumb-current" id="det-bc-title">–</span>
+    </nav>
+    <div class="detail-head">
+      <div class="detail-head-left">
+        <h1 id="det-name">–</h1>
+      </div>
+      <div class="detail-head-right">
+        <div id="det-badge"></div>
+        <div class="detail-last-probe" id="det-last-probe">–</div>
+        <div class="detail-actions">
+          <button type="button" id="det-test" class="primary"></button>
+          <button type="button" id="det-edit"></button>
+          <button type="button" id="det-toggle"></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary KPI cards -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Disponibilidad acumulada</div>
+        <div class="kpi-val" id="det-kpi-uptime">–</div>
+        <div class="kpi-sub" id="det-kpi-uptime-sub">Intervalos observados</div>
+        <div class="spark-box"><canvas id="spark-uptime"></canvas></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Latencia (P95 / Mediana)</div>
+        <div class="kpi-val" id="det-kpi-lat">–</div>
+        <div class="kpi-sub" id="det-kpi-lat-sub">Tiempo de respuesta</div>
+        <div class="spark-box"><canvas id="spark-lat"></canvas></div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Incidentes registrados</div>
+        <div class="kpi-val" id="det-kpi-incidents">–</div>
+        <div class="kpi-sub" id="det-kpi-incidents-sub">En esta sesión</div>
+        <div class="spark-box" style="display:flex;align-items:center;color:var(--muted);font-size:12px" id="det-incidents-status">Sin cortes activos</div>
+      </div>
+    </div>
+
+    <!-- Split: Specifications + Latency Trends -->
+<div class="section-heading"><label class="range-control">Rango de datos<select class="range-select" aria-label="Rango de datos"><option value="0">Todo</option><option value="15">Últimos 15 min</option><option value="60">Última hora</option><option value="360">Últimas 6 horas</option><option value="1440">Últimas 24 horas</option></select></label><span class="hint">El rango se aplica a gráficas, sondeos y auditoría.</span></div>
+    <div class="detail-split">
+      <div class="detail-panel">
+        <div class="panel-head">
+          <h2>Detalles del monitor</h2>
+        </div>
+        <div class="specs-list">
+          <div class="spec-item"><label>Estado</label><div class="spec-val" id="det-spec-status">–</div></div>
+          <div class="spec-item"><label>URL de autenticación</label><div class="spec-val technical" id="det-spec-auth">–</div></div>
+          <div class="spec-item"><label>URL de ACL</label><div class="spec-val technical" id="det-spec-acl">–</div></div>
+          <div class="spec-item"><label>URL de sondeo</label><div class="spec-val technical" id="det-spec-health">–</div></div>
+          <div class="spec-item"><label>Prefijos de ClientID</label><div class="prefixes" id="det-spec-auth-pref"></div></div>
+          <div class="spec-item"><label>Prefijos de tópico</label><div class="prefixes" id="det-spec-acl-pref"></div></div>
+          <div class="spec-item"><label>Frecuencia de sondeo</label><div class="spec-val">Cada 30 segundos</div></div>
+          <div class="spec-item"><label>Timeout de conexión</label><div class="spec-val">5 000 ms</div></div>
+          <div class="spec-item"><label>Autenticación (API Key)</label><div class="spec-val" id="det-spec-key">–</div></div>
+        </div>
+      </div>
+
+      <div class="detail-panel">
+        <div class="panel-head">
+          <div>
+            <h2>Tendencias de duración</h2>
+            <span class="hint">Latencia de llamadas recientes</span>
+          </div>
+          <div class="chart-stats" id="det-chart-stats"></div>
+        </div>
+        <div class="chart-box">
+          <canvas id="duration-chart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Heartbeat Bars (Last 24 Checks) -->
+    <div class="detail-panel" style="margin-bottom:16px">
+      <div class="panel-head">
+        <div>
+          <h2>Historial de sondeos</h2>
+          <span class="hint">Últimos 24 sondeos del rango</span>
+        </div>
+        <div class="hb-legend">
+          <span><span class="hb-swatch good"></span> Operativo</span>
+          <span><span class="hb-swatch bad"></span> Fallido</span>
+          <span><span class="hb-swatch hb-empty"></span> Sin datos</span>
+        </div>
+      </div>
+      <p class="range-summary" id="range-summary"></p><div class="heartbeat-strip" id="det-heartbeat-strip"></div>
+    </div>
+
+    <!-- Backend Audit Logs -->
+    <div class="detail-panel">
+      <div class="panel-head">
+        <h2>Auditoría del backend</h2>
+        <span class="hint" id="det-logs-count">0 eventos</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Hora</th><th>Tipo</th><th>ClientID</th><th>Tópico</th><th>Resultado</th><th>Latencia</th></tr>
+          </thead>
+          <tbody id="det-log-rows"></tbody>
+        </table>
+      </div>
+<div class="pagination" id="detailLogs-pages"></div>
+    </div>
+  </section>
+
+  <!-- Main header and tabs (visible when NOT in detail view) -->
+  <div id="main-view-container">
+    <div class="title-row" id="main-header-row">
+      <div>
+        <h1>Panel de MQTT Gateway</h1>
+        <p>Supervisión en tiempo real de rutas, tráfico y disponibilidad.</p>
+      </div>
+      <div class="title-actions">
+        <button id="refresh"></button>
+        <button class="primary" id="register"></button>
+      </div>
+    </div>
+
+
+
+    <nav id="main-nav" aria-label="Secciones de administración">
+      <button class="active" data-tab="backends" aria-current="page">Backends <span class="count" id="backend-count">0</span></button>
+      <button data-tab="incidents">Incidentes <span class="count" id="incident-count">0</span></button>
+      <button data-tab="logs">Auditoría <span class="count" id="log-count">0</span></button>
+    </nav>
+
+    <section id="backends">
+      <div class="summary">
+        <div><small>Backends activos</small><strong id="online">–</strong></div>
+        <div><small>Latencia media global</small><strong id="average">–</strong></div>
+        <div><small>Incidentes abiertos</small><strong id="open-incidents">–</strong></div>
+        <div><small>Eventos registrados</small><strong id="events">–</strong></div>
+      </div>
+      <div class="section-heading">
+        <h2>Backends registrados</h2>
+        <div class="view-toggle" role="group" aria-label="Vista de rutas"><button type="button" id="view-cards" aria-pressed="true">Tarjetas</button><button type="button" id="view-table" aria-pressed="false">Filas</button></div>
+      </div>
+      <div class="cards" id="cards"><div class="loading">Cargando backends...</div></div>
+      <div id="routes-table-view" hidden><div class="table-wrap"><table class="routes-table"><thead><tr><th>Backend</th><th>Estado</th><th>Prefijos Auth</th><th>Prefijos ACL</th><th>URL de sondeo</th><th>Acciones</th></tr></thead><tbody id="route-rows"></tbody></table></div><div class="pagination" id="routes-pages"></div></div>
+    </section>
+
+    <section id="incidents" hidden>
+      <div class="section-heading">
+        <h2>Historial de incidentes</h2>
+        <span class="hint">Registro persistente de cortes y recuperaciones</span>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Backend</th><th>Inicio</th><th>Fin</th><th>Duración</th><th>Motivo</th><th>Estado</th></tr></thead>
+          <tbody id="incident-rows"></tbody>
+        </table>
+      </div>
+<div class="pagination" id="incidents-pages"></div>
+    </section>
+
+    <section id="logs" hidden>
+      <div class="section-heading">
+        <h2>Auditoría en vivo</h2>
+        <div style="display:flex;gap:8px">
+          <button type="button" id="clear-logs" class="danger"></button>
+        </div>
+      </div>
+      <div class="filters">
+        <label class="range-control">Rango de datos<select class="range-select" aria-label="Rango de datos"><option value="0">Todo</option><option value="15">Últimos 15 min</option><option value="60">Última hora</option><option value="360">Últimas 6 horas</option><option value="1440">Últimas 24 horas</option></select></label>
+        <input id="client-filter" type="search" placeholder="Filtrar por ClientID" aria-label="Filtrar por ClientID">
+        <input id="topic-filter" type="search" placeholder="Filtrar por tópico" aria-label="Filtrar por tópico">
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Hora</th><th>Tipo</th><th>ClientID</th><th>Tópico</th><th>Resultado</th><th>Backend</th><th>Latencia</th></tr></thead>
+          <tbody id="log-rows"></tbody>
+        </table>
+      </div>
+<div class="pagination" id="logs-pages"></div>
+    </section>
+  </div>
+
+  <footer>
+    <span>MQTT Gateway</span>
+    <span id="updated">Esperando datos</span>
+  </footer>
+</section>
+</main>
+
+<!-- Dialog: Route Create / Edit -->
+<dialog id="route-dialog" aria-labelledby="dialog-title">
+<form id="route-form">
+  <div class="dialog-head">
+    <h2 id="dialog-title">Registrar backend</h2>
+    <button type="button" id="close-dialog" aria-label="Cerrar"></button>
+  </div>
+  <p>Los cambios en las rutas se aplican de forma inmediata.</p>
+  <div class="form-grid">
+    <label class="full">Nombre<input name="name" required maxlength="100" placeholder="Nombre del servicio"></label>
+    <label class="full">URL de autenticación<input name="authUrl" type="url" required placeholder="http://127.0.0.1:8090/api/v1/auth"></label>
+    <label class="full">URL de ACL<input name="aclUrl" type="url" required placeholder="http://127.0.0.1:8090/api/v1/acl"></label>
+    <label class="full">URL de sondeo<input name="healthUrl" type="url" required placeholder="http://127.0.0.1:8090/health">
+      <span class="hint">Endpoint GET seguro para verificar disponibilidad.</span>
+    </label>
+    <label>Prefijos de ClientID<input name="authPrefixes" required placeholder="core_, device_"></label>
+    <label>Prefijos de tópico<input name="aclPrefixes" required placeholder="v1/, telemetry/"></label>
+    <label class="full">API key<input name="apiKey" type="password" autocomplete="new-password" placeholder="Opcional">
+      <span id="key-hint" class="hint">Se envía en la cabecera X-EMQX-API-KEY.</span>
+    </label>
+    <label class="check full" id="clear-key-label" hidden><input name="clearKey" type="checkbox"> Eliminar API key actual</label>
+    <label class="check full"><input name="enabled" type="checkbox" checked> Backend activo</label>
+  </div>
+
+  <div class="modal-notice">
+    HTTP 4xx en el sondeo indica un servicio accesible, no una autenticación válida. El uptime cubre intervalos observados por el sondeo de esta sesión del servicio. P95 usa las últimas 2 000 llamadas. Los períodos sin observación no se consideran online.
+  </div>
+
+  <div id="form-error" class="message" role="alert" hidden style="margin-top:14px"></div>
+  <div class="form-actions">
+    <button type="button" id="cancel-dialog">Cancelar</button>
+    <button class="primary" type="submit">Guardar backend</button>
+  </div>
+</form>
+</dialog>
+
+<!-- Confirmación con contraseña y foco nativo del navegador. -->
+<dialog id="delete-confirm-dialog" aria-labelledby="delete-title">
+<form id="delete-confirm-form">
+  <h2 id="delete-title">Confirmar eliminación de backend</h2>
+  <p id="delete-text"></p>
+  <label for="delete-confirm-password">Contraseña de administrador</label>
+  <input type="password" id="delete-confirm-password" autocomplete="current-password" placeholder="Ingresa tu contraseña de administrador" required>
+  <div id="delete-error" class="message" role="alert" hidden></div>
+  <div class="form-actions">
+    <button type="button" id="cancel-delete">Cancelar</button>
+    <button type="submit" class="delete-danger" id="confirm-delete">Eliminar backend</button>
+  </div>
+</form>
+</dialog>
+<aside id="probe-toast" class="probe-toast" aria-label="Resultado del sondeo" role="status" hidden>
+  <div class="toast-heading"><strong id="toast-name"></strong><button type="button" id="close-toast" aria-label="Cerrar resultado del sondeo">&times;</button></div>
+  <div class="toast-meta"><span id="toast-http"></span><span id="toast-latency"></span></div>
+  <p id="toast-message"></p>
+</aside>
+
+<script>
+'use strict';
+const $ = s => document.querySelector(s);
+const icons = {
+  refresh: '<path d="M20 7v5h-5M4 17v-5h5"/><path d="M6 7a7 7 0 0 1 12-1l2 2M4 16l2 2a7 7 0 0 0 12-1"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  server: '<rect x="3" y="3" width="18" height="7" rx="2"/><rect x="3" y="14" width="18" height="7" rx="2"/><path d="M7 6.5h.01M7 17.5h.01M16 6.5h2M16 17.5h2"/>',
+  check: '<path d="m5 12 4 4L19 6"/>',
+  alert: '<path d="m12 3 10 18H2Z"/><path d="M12 9v4M12 17h.01"/>',
+  pause: '<path d="M8 5v14M16 5v14"/>',
+  play: '<path d="m7 4 14 8-14 8Z"/>',
+  edit: '<path d="m15 5 4 4M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15Z"/>',
+  trash: '<path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/>',
+  close: '<path d="m6 6 12 12M6 18 18 6"/>',
+  pulse: '<path d="M2 12h5l3-8 4 16 3-8h5"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>',
+  moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+  system: '<rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 17v4"/>',
+  chart: '<path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>',
+  back: '<path d="m15 18-6-6 6-6"/>'
+};
+const icon = n => '<svg viewBox="0 0 24 24" aria-hidden="true">' + (icons[n] || '') + '</svg>';
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt = v => v == null ? '—' : Number(v).toFixed(1);
+const date = v => v ? new Date(v).toLocaleString('es-PE') : 'En curso';
+const duration = v => v < 60000 ? Math.round(v / 1000) + ' s' : v < 3600000 ? (v / 60000).toFixed(1) + ' min' : (v / 3600000).toFixed(1) + ' h';
+const statusClass = s => s === 'Normal' ? 'good' : s === 'Slow' || s === 'Degraded' ? 'warn' : s === 'Offline' ? 'bad' : 'neutral';
+const badge = (s, cl) => '<span class="badge ' + cl + '"><span class="dot"></span>' + esc(s) + '</span>';
+
+/* Token management */
+function storedToken() {
+  for (const storage of [localStorage, sessionStorage]) {
+    const raw = storage.getItem('token');
+    if (!raw) continue;
+    try {
+      const val = JSON.parse(raw);
+      if (typeof val === 'string') return val;
+      if (typeof val?.token === 'string') return val.token;
+    } catch { return raw; }
+  }
+  return sessionStorage.getItem('gateway_emqx_token') || '';
+}
+
+/* Global state variables defined before any call */
+let token = storedToken(), routes = [], metrics = [], incidents = [], logs = [];
+let editing = null, deleting = null, refreshing = false, loggedIn = false;
+let activeDetailId = null;
+let viewMode = localStorage.getItem('gateway_view_mode') === 'table' ? 'table' : 'cards';
+let rangeMinutes = 0, toastTimer, toastCloseTimer;
+let sseSource = null;
+const pages = { logs: {page:1,size:25}, detailLogs:{page:1,size:25}, incidents:{page:1,size:10}, routes:{page:1,size:10} };
+function loading(button, value) {
+  button.disabled = value;
+  button.classList.toggle('is-loading', value);
+  button.setAttribute('aria-busy', String(value));
+  const dialog = button.closest('dialog');
+  if (dialog) for (const cancel of dialog.querySelectorAll('button[type=button]')) cancel.disabled = value;
+}
+function inRange(time) {
+  if (!rangeMinutes) return true;
+  const value = Date.parse(time), now = Date.now();
+  return Number.isFinite(value) && value >= now - rangeMinutes * 60000 && value <= now;
+}
+// ponytail: paginar arrays ya recibidos limita el DOM sin otra API ni dependencia.
+function paged(items, key) {
+  const state = pages[key], total = Math.max(1, Math.ceil(items.length / state.size));
+  state.page = Math.max(1, Math.min(total, state.page));
+  const container = $('#' + key + '-pages');
+  container.hidden = key !== 'logs' && key !== 'detailLogs' && items.length <= 10;
+  container.innerHTML = '<span class="page-info" aria-live="polite">Página ' + state.page + ' de ' + total + ' (Total: ' + items.length + (key === 'logs' || key === 'detailLogs' ? ' eventos)' : ' registros)') + '</span>' +
+    ((key === 'logs' || key === 'detailLogs') ? '<label>Por página<select data-page-size="' + key + '" aria-label="Eventos por página">' + [25,50,100].map(size => '<option ' + (size === state.size ? 'selected' : '') + '>' + size + '</option>').join('') + '</select></label>' : '') +
+    '<button type="button" data-page="' + key + '" data-step="-1" ' + (state.page === 1 ? 'disabled' : '') + '>Anterior</button>' +
+    '<button type="button" data-page="' + key + '" data-step="1" ' + (state.page === total ? 'disabled' : '') + '>Siguiente</button>';
+  return items.slice((state.page - 1) * state.size, state.page * state.size);
+}
+function renderView() {
+  $('#cards').hidden = viewMode !== 'cards';
+  $('#routes-table-view').hidden = viewMode !== 'table';
+  $('#view-cards').setAttribute('aria-pressed', String(viewMode === 'cards'));
+  $('#view-table').setAttribute('aria-pressed', String(viewMode === 'table'));
+  $('#route-rows').innerHTML = paged(routes, 'routes').map(r => {
+    const m = metrics.find(x => x.id === r.id) || {status:'Unknown'};
+    return '<tr><td><button class="table-name" data-action="detail" data-id="' + esc(r.id) + '">' + esc(r.name) + '</button></td><td>' + badge(m.status, statusClass(m.status)) + '</td>' +
+      '<td>' + r.authPrefixes.map(esc).join(', ') + '</td><td>' + r.aclPrefixes.map(esc).join(', ') + '</td><td><span class="route-health technical" title="' + esc(r.healthUrl || '') + '">' + esc(r.healthUrl || 'Sin endpoint') + '</span></td><td><div class="card-menu">' +
+      [['test','Probar conexión','pulse'],['pause',r.enabled?'Pausar':'Reanudar',r.enabled?'pause':'play'],['edit','Editar','edit'],['delete','Eliminar','trash']].map(([action,label,symbol]) => '<button type="button" data-action="' + action + '" data-id="' + esc(r.id) + '" title="' + label + '" aria-label="' + label + ' ' + esc(r.name) + '" ' + (action==='test' && !r.enabled ? 'disabled' : '') + (action==='delete' ? ' class="danger"' : '') + '>' + icon(symbol) + '</button>').join('') + '</div></td></tr>';
+  }).join('') || '<tr><td colspan="6" class="empty">No hay backends registrados.</td></tr>';
+}
+function closeToast() {
+  clearTimeout(toastTimer); clearTimeout(toastCloseTimer);
+  $('#probe-toast').classList.add('is-closing');
+  toastCloseTimer = setTimeout(() => { $('#probe-toast').hidden = true; }, 180);
+}
+function probeToast(route, result) {
+  clearTimeout(toastTimer); clearTimeout(toastCloseTimer);
+  const code = Number(result.httpStatus) || 0;
+  $('#toast-name').textContent = route.name;
+  $('#toast-http').innerHTML = badge(code ? 'HTTP ' + code : 'Sin respuesta HTTP', code >= 200 && code < 400 ? 'good' : code >= 400 && code < 500 ? 'warn' : 'bad');
+  $('#toast-latency').textContent = Number.isFinite(result.latencyMs) ? fmt(result.latencyMs) + ' ms' : 'Latencia no disponible';
+  $('#toast-message').textContent = code >= 400 && code < 500 ? 'Servicio accesible; revisa la URL o los permisos del sondeo.' : result.online ? 'El servicio respondió al sondeo.' : 'No se pudo completar el sondeo. ' + (result.reason || 'Comprueba la disponibilidad del servicio.');
+  $('#probe-toast').classList.remove('is-closing');
+  $('#probe-toast').hidden = false;
+  toastTimer = setTimeout(closeToast, 5000);
+}
+$('#close-toast').onclick = closeToast;
+for (const dialog of document.querySelectorAll('dialog')) dialog.addEventListener('cancel', e => {
+  if (dialog.querySelector('[aria-busy="true"]')) e.preventDefault();
+});
+document.addEventListener('click', e => {
+  const button = e.target.closest('button[data-page]');
+  if (!button || button.disabled) return;
+  pages[button.dataset.page].page += Number(button.dataset.step);
+  render();
+});
+document.addEventListener('change', e => {
+  if (e.target.matches('[data-page-size]')) {
+    const state = pages[e.target.dataset.pageSize];
+    state.size = Number(e.target.value); state.page = 1; render();
+  }
+  if (e.target.matches('.range-select')) {
+    rangeMinutes = Number(e.target.value);
+    for (const control of document.querySelectorAll('.range-select')) control.value = e.target.value;
+    pages.logs.page = pages.detailLogs.page = 1; render();
+  }
+});
+for (const mode of ['cards','table']) $('#view-' + mode).onclick = () => {
+  viewMode = mode; localStorage.setItem('gateway_view_mode', mode); render();
+};
+let durationChart = null, sparkUptimeChart = null, sparkLatChart = null;
+
+/* Theme Switcher */
+let currentTheme = localStorage.getItem('gateway_theme') || 'system';
+function applyTheme(theme) {
+  currentTheme = theme;
+  localStorage.setItem('gateway_theme', theme);
+  const effective = theme === 'system'
+    ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+    : theme;
+  document.documentElement.setAttribute('data-theme', effective);
+  for (const b of document.querySelectorAll('.theme-switch button')) {
+    b.classList.toggle('active', b.dataset.val === theme);
+  }
+  if (activeDetailId && typeof renderDetail === 'function') renderDetail();
+}
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if (currentTheme === 'system') applyTheme('system');
+});
+for (const b of document.querySelectorAll('.theme-switch button')) {
+  b.onclick = () => applyTheme(b.dataset.val);
+}
+$('#theme-light').innerHTML = icon('sun');
+$('#theme-dark').innerHTML = icon('moon');
+$('#theme-system').innerHTML = icon('system');
+applyTheme(currentTheme);
+
+$('#refresh').innerHTML = icon('refresh') + 'Actualizar';
+$('#register').innerHTML = icon('plus') + 'Registrar backend';
+$('#close-dialog').innerHTML = icon('close');
+$('#clear-logs').innerHTML = icon('trash') + 'Limpiar logs';
+$('#back-btn').innerHTML = icon('back') + 'Backends';
+$('#det-test').innerHTML = icon('pulse') + 'Probar conexión';
+$('#det-edit').innerHTML = icon('edit') + 'Editar';
+
+function notice(text) {
+  $('#notice').textContent = text;
+  $('#notice').hidden = !text;
+}
+
+async function api(path, options = {}) {
+  const response = await fetch('/api/admin' + path, {
+    ...options,
+    cache: 'no-store',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': 'Bearer ' + token } : {}),
+      ...options.headers
+    }
+  });
+  const body = response.status === 204 ? null : await response.json().catch(() => ({ error: 'Respuesta inválida del servidor' }));
+  if (!response.ok) {
+    if (response.status === 401 || (response.status === 403 && !options.headers?.['X-Admin-Password'])) showLogin();
+    throw new Error(body?.error || ('La operación falló (HTTP ' + response.status + ')'));
+  }
+  return body;
+}
+
+function showLogin() {
+  loggedIn = false;
+  token = '';
+  sessionStorage.removeItem('gateway_emqx_token');
+  sessionStorage.removeItem('gateway_admin_username');
+  if (sseSource) { try { sseSource.close(); } catch(_){} sseSource = null; }
+  $('#workspace').hidden = true;
+  $('#login').hidden = false;
+  $('#logout').hidden = true;
+  $('#delete-confirm-dialog').close();
+  $('#delete-confirm-password').value = '';
+  closeToast();
+}
+
+async function enter(candidate) {
+  token = candidate;
+  await api('/auth/verify');
+  sessionStorage.setItem('gateway_emqx_token', token);
+  connectStream();
+  loggedIn = true;
+  $('#login').hidden = true;
+  $('#workspace').hidden = false;
+  $('#logout').hidden = false;
+  $('#password').value = '';
+  $('#token-input').value = '';
+  await refresh();
+}
+
+async function refresh() {
+  if (!loggedIn || refreshing || document.hidden || document.querySelector('[aria-busy="true"]') || $('#route-dialog').open || $('#delete-confirm-dialog').open) return;
+  refreshing = true;
+  try {
+    [routes, metrics, incidents, logs] = await Promise.all(['/routes', '/metrics', '/incidents', '/logs'].map(p => api(p)));
+    render();
+    $('#updated').textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-PE');
+  } catch (e) {
+    notice(e.message);
+  } finally {
+    refreshing = false;
+  }
+}
+
+function render() {
+  $('#backend-count').textContent = routes.length;
+  $('#incident-count').textContent = incidents.length;
+  $('#log-count').textContent = logs.length;
+
+  const active = metrics.filter(m => !['Paused', 'Unknown', 'Offline'].includes(m.status)).length;
+  $('#online').textContent = active + ' / ' + routes.length;
+
+  const total = metrics.reduce((n, m) => n + m.count, 0);
+  $('#average').textContent = total ? fmt(metrics.reduce((n, m) => n + (m.averageMs || 0) * m.count, 0) / total) + ' ms' : '—';
+  $('#open-incidents').textContent = incidents.filter(i => !i.endedAt).length;
+  $('#events').textContent = logs.length;
+
+  /* Render cards */
+  $('#cards').innerHTML = (viewMode === 'cards' ? routes : []).map(r => {
+    const m = metrics.find(x => x.id === r.id) || { status: 'Unknown', count: 0 };
+    const cl = statusClass(m.status);
+    return '<article class="card ' + (m.status === 'Offline' ? 'offline' : '') + '">' +
+      '<div class="card-head">' +
+        '<div>' +
+          '<h2 class="backend-label">' + icon('server') +
+            '<button type="button" class="card-title-btn" data-action="detail" data-id="' + esc(r.id) + '">' + esc(r.name) + '</button>' +
+          '</h2>' +
+          '<div class="endpoint">' + esc(r.authUrl) + '</div>' +
+        '</div>' +
+        badge(m.status, cl) +
+      '</div>' +
+      '<div class="latency">' +
+        '<div><span class="hint">Última llamada</span><br><strong class="' + cl + '">' + (m.count ? fmt(m.currentMs) : '—') + ' <small>ms</small></strong></div>' +
+        '<span class="hint technical">' + m.count + ' llamadas</span>' +
+      '</div>' +
+      '<div class="metrics">' +
+        [['Promedio', m.averageMs], ['P95', m.p95Ms], ['Mínima', m.minMs], ['Máxima', m.maxMs]].map(([l, v]) =>
+          '<div><small>' + l + '</small><b>' + (m.count ? fmt(v) + ' ms' : '—') + '</b></div>'
+        ).join('') +
+      '</div>' +
+      '<div class="uptime">' +
+        '<div class="uptime-line"><span>Uptime observado</span><span class="technical ' + cl + '">' + (m.uptimePercent == null ? 'Sin intervalos' : fmt(m.uptimePercent) + ' %') + '</span></div>' +
+        '<div class="bar"><span style="width:' + Math.max(0, Math.min(100, m.uptimePercent || 0)) + '%"></span></div>' +
+        '<div class="hint">Sondeo: <span class="technical">' + (m.probeMs == null ? '—' : fmt(m.probeMs) + ' ms') + '</span> / HTTP ' + (m.probeHttpStatus || '—') + '</div>' +
+        '<div class="prefixes">' + [...r.authPrefixes, ...r.aclPrefixes].map(v => '<span class="prefix">' + esc(v) + '</span>').join('') + '</div>' +
+      '</div>' +
+      '<div class="card-footer">' +
+        '<button class="secondary" data-action="detail" data-id="' + esc(r.id) + '">' + icon('chart') + 'Detalle</button>' +
+        '<div class="card-menu">' +
+          '<button data-action="test" data-id="' + esc(r.id) + '" ' + (!r.enabled ? 'disabled' : '') + ' title="Probar conexión" aria-label="Probar conexión con ' + esc(r.name) + '">' + icon('pulse') + '</button>' +
+          '<button data-action="edit" data-id="' + esc(r.id) + '" title="Editar ' + esc(r.name) + '" aria-label="Editar ' + esc(r.name) + '">' + icon('edit') + '</button>' +
+          '<button data-action="pause" data-id="' + esc(r.id) + '" title="' + (r.enabled ? 'Pausar' : 'Activar') + ' ' + esc(r.name) + '" aria-label="' + (r.enabled ? 'Pausar' : 'Activar') + ' ' + esc(r.name) + '">' + icon(r.enabled ? 'pause' : 'play') + '</button>' +
+          '<button class="danger" data-action="delete" data-id="' + esc(r.id) + '" title="Eliminar ' + esc(r.name) + '" aria-label="Eliminar ' + esc(r.name) + '">' + icon('trash') + '</button>' +
+        '</div>' +
+      '</div>' +
+    '</article>';
+  }).join('') || '<div class="empty">No hay backends. Usa Registrar backend para añadir uno.</div>';
+
+  renderView();
+
+  /* Render incidents */
+  $('#incident-rows').innerHTML = paged([...incidents].reverse(), 'incidents').map(i =>
+    '<tr><td>' + esc(i.backend) + '</td>' +
+    '<td class="technical">' + esc(date(i.startedAt)) + '</td>' +
+    '<td class="technical">' + esc(date(i.endedAt)) + '</td>' +
+    '<td class="technical">' + duration(i.durationMs) + '</td>' +
+    '<td>' + esc(i.reason) + '</td>' +
+    '<td>' + badge(i.endedAt ? (i.endReason === 'Recovered' ? 'Recuperado' : 'Cerrado') : 'Abierto', i.endedAt ? 'good' : 'bad') + '</td></tr>'
+  ).join('') || '<tr><td colspan="6" class="empty">Sin incidentes registrados.</td></tr>';
+
+  renderLogs();
+
+  if (activeDetailId) renderDetail();
+}
+
+function renderLogs() {
+  const client = $('#client-filter').value.toLowerCase(), topic = $('#topic-filter').value.toLowerCase();
+  $('#log-rows').innerHTML = paged(logs.filter(l => inRange(l.timestamp) && (l.client || '').toLowerCase().includes(client) && (l.topic || '').toLowerCase().includes(topic)), 'logs').map(l =>
+    '<tr><td class="technical">' + esc(date(l.timestamp)) + '</td>' +
+    '<td>' + esc(l.type) + '</td>' +
+    '<td class="technical">' + esc(l.client || '—') + '</td>' +
+    '<td class="technical">' + esc(l.topic || '—') + '</td>' +
+    '<td>' + badge(l.result, l.result === 'allow' ? 'good' : l.result === 'deny' ? 'bad' : 'neutral') + '</td>' +
+    '<td>' + esc(l.backend || 'Local') + '</td>' +
+    '<td>' + badge(fmt(l.latencyMs) + ' ms', l.latencyMs >= 200 ? 'warn' : 'good') + '</td></tr>'
+  ).join('') || '<tr><td colspan="7" class="empty">Sin eventos para estos filtros.</td></tr>';
+}
+
+/* Detail View Functions */
+function openDetail(id) {
+  activeDetailId = id;
+  pages.detailLogs.page = 1;
+  location.hash = 'detail-' + encodeURIComponent(id);
+  $('#backend-detail').hidden = false;
+  $('#main-view-container').hidden = true;
+  renderDetail();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function closeDetail() {
+  activeDetailId = null;
+  if (location.hash.startsWith('#detail-')) {
+    history.replaceState(null, '', location.pathname + location.search);
+  }
+  $('#backend-detail').hidden = true;
+  $('#main-view-container').hidden = false;
+  const activeTab = document.querySelector('#main-nav button.active')?.dataset.tab || 'backends';
+  for (const id of ['backends', 'incidents', 'logs']) $('#' + id).hidden = id !== activeTab;
+}
+
+$('#back-btn').onclick = closeDetail;
+
+function renderDetail() {
+  const r = routes.find(x => x.id === activeDetailId);
+  if (!r) { closeDetail(); return; }
+  const raw = metrics.find(x => x.id === r.id) || { status: 'Unknown', count: 0 };
+  const m = {...raw, probeHistory:(raw.probeHistory || []).filter(p => inRange(p.time)), recentSamples:rangeMinutes ? [] : raw.recentSamples};
+  if (rangeMinutes && !m.probeHistory.length) m.probeMs = null;
+  const cl = statusClass(m.status);
+
+  $('#det-bc-title').textContent = r.name;
+  $('#det-name').textContent = r.name;
+  $('#det-badge').innerHTML = badge(m.status, cl);
+
+  let lastProbeTxt = 'Sin sondeos registrados aún';
+  if (m.lastProbe) {
+    const sec = Math.max(0, Math.round((Date.now() - new Date(m.lastProbe).getTime()) / 1000));
+    lastProbeTxt = 'Último sondeo: hace ' + sec + ' s (HTTP ' + (m.probeHttpStatus || '—') + ', ' + fmt(m.probeMs) + ' ms)';
+  } else if (m.probeMs != null) {
+    lastProbeTxt = 'Sondeo: ' + fmt(m.probeMs) + ' ms (HTTP ' + (m.probeHttpStatus || '—') + ')';
+  }
+  $('#det-last-probe').textContent = lastProbeTxt;
+
+  /* Action buttons */
+  $('#det-toggle').innerHTML = icon(r.enabled ? 'pause' : 'play') + (r.enabled ? 'Pausar' : 'Activar');
+  $('#det-toggle').onclick = async () => {
+    try {
+      await api('/routes/' + encodeURIComponent(r.id), { method: 'PUT', body: JSON.stringify({ ...r, enabled: !r.enabled }) });
+      await refresh();
+    } catch (e) { notice(e.message); }
+  };
+
+  $('#det-test').disabled = !r.enabled;
+  $('#det-test').onclick = () => testConnection(r, $('#det-test'));
+
+  $('#det-edit').onclick = () => openEditor(r);
+
+  /* KPIs */
+  $('#det-kpi-uptime').textContent = m.uptimePercent == null ? 'Sin datos' : fmt(m.uptimePercent) + ' %';
+  $('#det-kpi-lat').textContent = m.count ? fmt(m.p95Ms) + ' ms' : (m.probeMs ? fmt(m.probeMs) + ' ms' : '—');
+  const beIncidents = incidents.filter(i => i.backendId === r.id || i.backend === r.name);
+  $('#det-kpi-incidents').textContent = beIncidents.length;
+  $('#det-incidents-status').textContent = beIncidents.filter(i => !i.endedAt).length ? 'Corte activo en curso' : 'Sin cortes activos';
+
+  /* Mini Sparklines with Chart.js */
+  renderSparklines(m);
+
+  /* Specifications */
+  $('#det-spec-status').innerHTML = badge(r.enabled ? 'Habilitado' : 'Pausado', r.enabled ? 'good' : 'neutral');
+  $('#det-spec-auth').textContent = r.authUrl;
+  $('#det-spec-auth').title = r.authUrl;
+  $('#det-spec-acl').textContent = r.aclUrl;
+  $('#det-spec-acl').title = r.aclUrl;
+  $('#det-spec-health').textContent = r.healthUrl || 'Sin endpoint específico';
+  $('#det-spec-health').title = r.healthUrl || '';
+  $('#det-spec-auth-pref').innerHTML = r.authPrefixes.map(p => '<span class="prefix">' + esc(p) + '</span>').join('');
+  $('#det-spec-acl-pref').innerHTML = r.aclPrefixes.map(p => '<span class="prefix">' + esc(p) + '</span>').join('');
+  $('#det-spec-key').textContent = r.hasApiKey ? 'Configurada (X-EMQX-API-KEY)' : 'Sin autenticación por clave';
+
+  /* Duration Trends (Chart.js Cloudflare/shadcn style) */
+  renderChart(m);
+
+  /* Heartbeat (Last 24 Checks) - strictly identical dimensions */
+  const history = m.probeHistory || [];
+  $('#range-summary').textContent = history.length ? history.length + ' sondeos en el rango; se muestran los últimos 24.' : 'Sin sondeos en este rango.';
+  const bars = [];
+  for (let i = 0; i < 24; i++) {
+    const idx = history.length - 24 + i;
+    const val = idx >= 0 ? history[idx] : null;
+    let status = 'hb-empty';
+    let title = 'Sin datos registrados';
+    if (val !== null && val !== undefined) {
+      const isOnline = (typeof val === 'object') ? (val.online === true) : (val === true);
+      status = isOnline ? 'good' : 'bad';
+      if (typeof val === 'object' && val.time) {
+        const timeStr = date(val.time);
+        const msStr = val.latencyMs != null ? ' (' + fmt(val.latencyMs) + ' ms)' : '';
+        const codeStr = val.status ? ' (HTTP ' + val.status + ')' : '';
+        title = isOnline ? (timeStr + ' — Operativo' + msStr) : (timeStr + ' — No disponible' + codeStr + msStr);
+      } else {
+        title = isOnline ? 'Operativo' : 'Falla detectada';
+      }
+    }
+    bars.push('<div class="hb-bar ' + status + '" title="' + esc(title) + '" tabindex="0" role="img" aria-label="' + esc(title) + '"></div>');
+  }
+  $('#det-heartbeat-strip').innerHTML = bars.join('');
+
+  /* Filtered Logs */
+  const beLogs = logs.filter(l => (l.backend === r.name || l.backend === r.id) && inRange(l.timestamp));
+  $('#det-logs-count').textContent = beLogs.length + ' eventos';
+  $('#det-log-rows').innerHTML = paged(beLogs, 'detailLogs').map(l =>
+    '<tr><td class="technical">' + esc(date(l.timestamp)) + '</td>' +
+    '<td>' + esc(l.type) + '</td>' +
+    '<td class="technical">' + esc(l.client || '—') + '</td>' +
+    '<td class="technical">' + esc(l.topic || '—') + '</td>' +
+    '<td>' + badge(l.result, l.result === 'allow' ? 'good' : l.result === 'deny' ? 'bad' : 'neutral') + '</td>' +
+    '<td>' + badge(fmt(l.latencyMs) + ' ms', l.latencyMs >= 200 ? 'warn' : 'good') + '</td></tr>'
+  ).join('') || '<tr><td colspan="6" class="empty">Sin llamadas procesadas para este backend aún.</td></tr>';
+}
+
+function renderSparklines(m) {
+  if (typeof Chart === 'undefined') return;
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+  const tealColor = isDark ? '#00BFB3' : '#008B82';
+  const blueColor = isDark ? '#38BDF8' : '#0284C7';
+
+  /* Uptime sparkline */
+  const upCanvas = $('#spark-uptime');
+  if (upCanvas) {
+    let upData;
+    if (m.probeHistory && m.probeHistory.length >= 2) {
+      upData = m.probeHistory.map(p => (typeof p === 'object' ? (p.online ? 100 : 0) : (p ? 100 : 0)));
+    } else { upData = (m.probeHistory || []).map(p => p.online ? 100 : 0); }
+    if (sparkUptimeChart) {
+      sparkUptimeChart.data.labels = upData.map((_, i) => i);
+      sparkUptimeChart.data.datasets[0].data = upData;
+      sparkUptimeChart.data.datasets[0].borderColor = tealColor;
+      sparkUptimeChart.update('none');
+    } else {
+      const ctx = upCanvas.getContext('2d');
+      const grad = ctx.createLinearGradient(0, 0, 0, 36);
+      grad.addColorStop(0, isDark ? 'rgba(0,191,179,0.25)' : 'rgba(0,139,130,0.2)');
+      grad.addColorStop(1, 'rgba(0,191,179,0)');
+      sparkUptimeChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: upData.map((_, i) => i),
+          datasets: [{ data: upData, borderColor: tealColor, backgroundColor: grad, fill: true, tension: 0.4, borderWidth: 1.5, pointRadius: 0 }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: false,
+          plugins: { legend: { display: false }, tooltip: { enabled: false } },
+          scales: { x: { display: false }, y: { display: false, min: 0, max: 105 } }
+        }
+      });
+    }
+  }
+
+  /* Latency sparkline */
+  const latCanvas = $('#spark-lat');
+  if (latCanvas) {
+    let latData;
+    if (m.probeHistory && m.probeHistory.length >= 2) {
+      latData = m.probeHistory.map(p => (typeof p === 'object' && p.latencyMs != null ? Number(p.latencyMs.toFixed(2)) : (m.probeMs || 1)));
+    } else if (m.recentSamples && m.recentSamples.length >= 2) {
+      latData = m.recentSamples;
+    } else {
+      latData = (m.probeHistory || []).map(p => p.latencyMs);
+    }
+    if (sparkLatChart) {
+      sparkLatChart.data.labels = latData.map((_, i) => i);
+      sparkLatChart.data.datasets[0].data = latData;
+      sparkLatChart.data.datasets[0].borderColor = blueColor;
+      sparkLatChart.update('none');
+    } else {
+      const ctx = latCanvas.getContext('2d');
+      const grad = ctx.createLinearGradient(0, 0, 0, 36);
+      grad.addColorStop(0, 'rgba(0,119,204,0.25)');
+      grad.addColorStop(1, 'rgba(0,119,204,0)');
+      sparkLatChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: latData.map((_, i) => i),
+          datasets: [{ data: latData, borderColor: blueColor, backgroundColor: grad, fill: true, tension: 0.35, borderWidth: 1.5, pointRadius: 0 }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, animation: false,
+          plugins: { legend: { display: false }, tooltip: { enabled: false } },
+          scales: { x: { display: false }, y: { display: false, beginAtZero: true } }
+        }
+      });
+    }
+  }
+}
+
+function renderChart(m) {
+  const canvas = $('#duration-chart');
+  if (!canvas || typeof Chart === 'undefined') return;
+
+  const probeItems = (m.probeHistory && m.probeHistory.length) ? m.probeHistory : [];
+  let samples = [];
+  let labels = [];
+  let tooltips = [];
+
+  if (probeItems.length > 0) {
+    samples = probeItems.map(p => {
+      const ms = (typeof p === 'object' && p.latencyMs != null) ? p.latencyMs : (m.probeMs || 0);
+      return Number(ms.toFixed(2));
+    });
+    labels = probeItems.map(p => {
+      if (typeof p === 'object' && p.time) {
+        return new Date(p.time).toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      }
+      return '';
+    });
+    tooltips = probeItems.map(p => {
+      const timeStr = (typeof p === 'object' && p.time) ? new Date(p.time).toLocaleTimeString('es-PE') : '';
+      const isOnline = (typeof p === 'object') ? (p.online !== false) : !!p;
+      const statusStr = isOnline ? 'Operativo' : ('Falla' + (p.status ? ' HTTP ' + p.status : ''));
+      const ms = (typeof p === 'object' && p.latencyMs != null) ? p.latencyMs : (m.probeMs || 0);
+      return { time: timeStr, status: statusStr, ms: ms };
+    });
+  } else if (m.recentSamples && m.recentSamples.length) {
+    samples = m.recentSamples.map(s => Number(s.toFixed(2)));
+    labels = samples.map((_, i) => '#' + (i + 1));
+  }
+
+  const chartData = samples;
+  const chartLabels = labels;
+
+  const sorted = [...samples].sort((a, b) => a - b);
+  const p95 = sorted.length ? sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * 0.95) - 1)] : (m.probeMs || 0);
+  const avg = sorted.length ? (sorted.reduce((a, b) => a + b, 0) / sorted.length) : (m.probeMs || 0);
+  const min = sorted.length ? sorted[0] : (m.probeMs || 0);
+  const max = sorted.length ? sorted[sorted.length - 1] : (m.probeMs || 0);
+
+  $('#det-chart-stats').innerHTML =
+    (samples.length ? '<span>P95: <b>' + fmt(p95) + ' ms</b></span>' +
+    '<span>Promedio: <b>' + fmt(avg) + ' ms</b></span>' +
+    '<span>Mín: <b>' + fmt(min) + ' ms</b></span>' +
+    '<span>Máx: <b>' + fmt(max) + ' ms</b></span>' +
+    '<span style="color:var(--muted)">Muestras: <b>' + samples.length + '</b></span>' : '<span>Sin muestras en este rango.</span>');
+
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+  const primaryColor = isDark ? '#00BFB3' : '#008B82';
+  const gridColor = isDark ? 'rgba(255, 255, 255, 0.07)' : 'rgba(0, 0, 0, 0.06)';
+  const textColor = isDark ? '#98A2B3' : '#535B69';
+
+  const ctx = canvas.getContext('2d');
+  const chartHeight = canvas.clientHeight || 320;
+  const gradient = ctx.createLinearGradient(0, 0, 0, chartHeight);
+  if (isDark) {
+    gradient.addColorStop(0, 'rgba(0, 191, 179, 0.28)');
+    gradient.addColorStop(0.7, 'rgba(0, 191, 179, 0.04)');
+    gradient.addColorStop(1, 'rgba(0, 191, 179, 0)');
+  } else {
+    gradient.addColorStop(0, 'rgba(0, 139, 130, 0.22)');
+    gradient.addColorStop(0.7, 'rgba(0, 139, 130, 0.03)');
+    gradient.addColorStop(1, 'rgba(0, 139, 130, 0)');
+  }
+
+  if (durationChart) {
+    durationChart.data.labels = chartLabels;
+    durationChart.data.datasets[0].data = chartData;
+    durationChart.data.datasets[0].borderColor = primaryColor;
+    durationChart.data.datasets[0].backgroundColor = gradient;
+    durationChart.data.datasets[0].pointBorderColor = primaryColor;
+    durationChart.data.datasets[0].pointBackgroundColor = isDark ? '#25272F' : '#FFFFFF';
+    durationChart.options.scales.x.ticks.color = textColor;
+    durationChart.options.scales.y.ticks.color = textColor;
+    durationChart.options.scales.y.grid.color = gridColor;
+    durationChart.options.plugins.tooltip.backgroundColor = isDark ? '#18191E' : '#FFFFFF';
+    durationChart.options.plugins.tooltip.titleColor = isDark ? '#DFE5EF' : '#1A1C21';
+    durationChart.options.plugins.tooltip.bodyColor = primaryColor;
+    durationChart.options.plugins.tooltip.borderColor = isDark ? '#343741' : '#D3DAE6';
+    durationChart.options.plugins.tooltip.callbacks.title = items => tooltips[items[0].dataIndex]?.time || 'Muestra ' + items[0].label;
+    durationChart.update('none');
+    return;
+  }
+
+  durationChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: chartLabels,
+      datasets: [{
+        label: 'Latencia (ms)',
+        data: chartData,
+        borderColor: primaryColor,
+        backgroundColor: gradient,
+        fill: true,
+        tension: 0.35,
+        borderWidth: 2,
+        pointRadius: chartData.length > 20 ? 3 : 4,
+        pointHoverRadius: 6,
+        pointBackgroundColor: isDark ? '#25272F' : '#FFFFFF',
+        pointBorderColor: primaryColor,
+        pointBorderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      // ponytail: no interpolar muestras de rangos distintos durante una actualización.
+      animation: false,
+      interaction: {
+        intersect: false,
+        mode: 'index'
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: isDark ? '#18191E' : '#FFFFFF',
+          titleColor: isDark ? '#DFE5EF' : '#1A1C21',
+          bodyColor: primaryColor,
+          borderColor: isDark ? '#343741' : '#D3DAE6',
+          borderWidth: 1,
+          padding: 10,
+          boxPadding: 4,
+          usePointStyle: true,
+          displayColors: false,
+          callbacks: {
+            title: items => {
+              const idx = items[0].dataIndex;
+              const t = tooltips[idx];
+              if (t && t.time) return t.time + ' — ' + t.status;
+              return 'Muestra ' + items[0].label;
+            },
+            label: context => 'Latencia observada: ' + Number(context.raw).toFixed(2) + ' ms'
+          }
+        }
+      },
+      scales: {
+        x: {
+          display: true,
+          grid: { display: false },
+          ticks: {
+            color: textColor,
+            font: { size: 10, family: 'monospace' },
+            maxTicksLimit: 12
+          }
+        },
+        y: {
+          display: true,
+          beginAtZero: true,
+          grid: { color: gridColor, drawBorder: false },
+          ticks: {
+            color: textColor,
+            font: { size: 10, family: 'monospace' },
+            callback: v => v + ' ms'
+          }
+        }
+      }
+    }
+  });
+}
+
+/* Clear Logs */
+$('#clear-logs').onclick = async () => {
+  if (!confirm('¿Deseas vaciar todos los registros de auditoría?')) return;
+  try {
+    await api('/logs', { method: 'DELETE' });
+    logs = [];
+    render();
+    notice('Historial de logs limpiado.');
+  } catch (e) {
+    notice(e.message);
+  }
+};
+
+/* Modal and Route CRUD */
+function openEditor(route = null) {
+  editing = route;
+  const f = $('#route-form');
+  f.reset();
+  $('#dialog-title').textContent = route ? 'Editar backend' : 'Registrar backend';
+  $('#form-error').hidden = true;
+  $('#clear-key-label').hidden = !route?.hasApiKey;
+  for (const key of ['name', 'authUrl', 'aclUrl', 'healthUrl']) f.elements[key].value = route?.[key] || '';
+  for (const key of ['authPrefixes', 'aclPrefixes']) f.elements[key].value = route?.[key]?.join(', ') || '';
+  f.elements.enabled.checked = route ? route.enabled : true;
+  $('#key-hint').textContent = route?.hasApiKey ? 'Deja vacío para conservar la clave actual.' : 'Se envía en la cabecera X-EMQX-API-KEY.';
+  $('#route-dialog').showModal();
+}
+
+$('#register').onclick = () => openEditor();
+$('#close-dialog').onclick = $('#cancel-dialog').onclick = () => $('#route-dialog').close();
+$('#refresh').onclick = refresh;
+$('#logout').onclick = showLogin;
+
+for (const button of document.querySelectorAll('#main-nav [data-tab]')) {
+  button.onclick = () => {
+    for (const el of document.querySelectorAll('#main-nav [data-tab]')) {
+      el.classList.toggle('active', el === button);
+      if (el === button) el.setAttribute('aria-current', 'page');
+      else el.removeAttribute('aria-current');
+    }
+    for (const id of ['backends', 'incidents', 'logs']) $('#' + id).hidden = id !== button.dataset.tab;
+  };
+}
+
+$('#client-filter').oninput = $('#topic-filter').oninput = () => { pages.logs.page = 1; renderLogs(); };
+
+async function testConnection(route, button) {
+  if (button.disabled) return;
+  loading(button, true);
+  let result;
+  try { result = await api('/routes/' + encodeURIComponent(route.id) + '/test', {method:'POST'}); }
+  catch (error) { result = {online:false,reason:error.message}; }
+  finally { loading(button, false); }
+  await refresh();
+  probeToast(route, result);
+}
+async function routeAction(e) {
+  const button = e.target.closest('button[data-action]');
+  if (!button || button.disabled) return;
+  const route = routes.find(r => r.id === button.dataset.id);
+  if (!route) return;
+  switch (button.dataset.action) {
+    case 'detail': openDetail(route.id); return;
+    case 'edit': openEditor(route); return;
+    case 'test': await testConnection(route, button); return;
+    case 'delete':
+      deleting = route;
+      $('#delete-text').textContent = 'Se eliminará el backend «' + route.name + '» y sus rutas. El historial de incidentes se conserva.';
+      $('#delete-confirm-form').reset(); $('#delete-error').hidden = true;
+      $('#delete-confirm-dialog').showModal();
+      $('#delete-confirm-password').focus(); return;
+  }
+  loading(button, true);
+  try { await api('/routes/' + encodeURIComponent(route.id), {method:'PUT',body:JSON.stringify({...route,enabled:!route.enabled})}); }
+  catch (error) { notice(error.message); }
+  finally { loading(button, false); }
+  await refresh();
+}
+$('#cards').onclick = $('#route-rows').onclick = routeAction;
+
+$('#route-form').onsubmit = async e => {
+  e.preventDefault();
+  const f = e.target;
+  const value = { enabled: f.elements.enabled.checked };
+  for (const key of ['name', 'authUrl', 'aclUrl', 'healthUrl']) value[key] = f.elements[key].value.trim();
+  for (const key of ['authPrefixes', 'aclPrefixes']) value[key] = f.elements[key].value.split(',').map(s => s.trim()).filter(Boolean);
+  if (!editing || f.elements.apiKey.value || f.elements.clearKey.checked) {
+    value.apiKey = f.elements.clearKey.checked ? '' : f.elements.apiKey.value;
+  }
+  const button = f.querySelector('[type=submit]');
+  if (button.disabled) return;
+  loading(button, true);
+  try {
+    await api('/routes' + (editing ? '/' + encodeURIComponent(editing.id) : ''), {
+      method: editing ? 'PUT' : 'POST',
+      body: JSON.stringify(value)
+    });
+    $('#route-dialog').close();
+  } catch (error) {
+    $('#form-error').textContent = error.message;
+    $('#form-error').hidden = false;
+  } finally {
+    loading(button, false);
+  }
+  await refresh();
+};
+
+$('#cancel-delete').onclick = () => $('#delete-confirm-dialog').close();
+$('#delete-confirm-dialog').addEventListener('close', () => { $('#delete-confirm-password').value = ''; deleting = null; });
+$('#delete-confirm-form').onsubmit = async e => {
+  e.preventDefault();
+  const button = $('#confirm-delete');
+  if (button.disabled || !deleting) return;
+  loading(button, true); $('#delete-error').hidden = true;
+  const id = deleting.id;
+  try {
+    await api('/routes/' + encodeURIComponent(id), {method:'DELETE',headers:{
+      'X-Admin-Password':$('#delete-confirm-password').value,
+      'X-Admin-Username':sessionStorage.getItem('gateway_admin_username') || ''
+    }});
+    $('#delete-confirm-dialog').close();
+    if (activeDetailId === id) closeDetail();
+  } catch (error) {
+    $('#delete-error').textContent = error.message; $('#delete-error').hidden = false;
+    $('#delete-confirm-password').value = ''; $('#delete-confirm-password').focus();
+  } finally { loading(button, false); }
+  await refresh();
+};
+
+$('#login-form').onsubmit = async e => {
+  e.preventDefault();
+  const button = e.target.querySelector('button');
+  if (button.disabled) return;
+  loading(button, true);
+  $('#login-error').hidden = true;
+  try {
+    const res = await api('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ username: $('#username').value, password: $('#password').value })
+    });
+    sessionStorage.setItem('gateway_admin_username', res.username);
+    await enter(res.token);
+  } catch (error) {
+    $('#login-error').textContent = error.message;
+    $('#login-error').hidden = false;
+  } finally {
+    loading(button, false);
+  }
+  await refresh();
+};
+
+$('#token-form').onsubmit = async e => {
+  e.preventDefault();
+  try {
+    await enter($('#token-input').value.trim());
+  } catch (error) {
+    $('#login-error').textContent = error.message;
+    $('#login-error').hidden = false;
+  }
+};
+
+window.addEventListener('message', async e => {
+  const tokenCandidate = e.data?.token || e.data?.gatewayToken || e.data?.emqxToken;
+  if (e.origin !== location.origin || e.source !== window.parent || typeof tokenCandidate !== 'string') return;
+  try {
+    await enter(tokenCandidate);
+  } catch (error) {
+    $('#login-error').textContent = error.message;
+    $('#login-error').hidden = false;
+  }
+});
+
+const incoming = new URLSearchParams(location.hash.slice(1)).get('token');
+if (incoming) history.replaceState(null, '', location.pathname + location.search);
+if (incoming || token) enter(incoming || token).catch(e => {
+  $('#login-error').textContent = e.message;
+  $('#login-error').hidden = false;
+});
+if (window.parent !== window) {
+  window.parent.postMessage({ type: 'mqtt-gateway:request-token' }, location.origin);
+  window.parent.postMessage({ type: 'emqx-gateway:request-token' }, location.origin);
+}
+
+function connectStream() {
+  if (sseSource) {
+    try { sseSource.close(); } catch (_) {}
+    sseSource = null;
+  }
+  if (!token) return;
+  try {
+    sseSource = new EventSource('/api/admin/stream?token=' + encodeURIComponent(token));
+    sseSource.onmessage = (event) => {
+      if (event.data === 'update') {
+        refresh();
+      }
+    };
+    sseSource.onerror = () => {
+      // Reconexión automática nativa de EventSource sobre HTTP/2
+    };
+  } catch (e) {
+    console.error('SSE connect failed:', e);
+  }
+}
+
+connectStream();
+
+document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+</script>
+</body>
+</html>

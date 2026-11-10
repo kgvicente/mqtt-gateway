@@ -1,0 +1,805 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Referencia de Integración HTTP | MQTT Gateway</title>
+  <script>
+    (function() {
+      const saved = localStorage.getItem('gateway_theme') || 'system';
+      const isDark = saved === 'dark' || (saved === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    })();
+  </script>
+  <style>
+    :root, html[data-theme="light"] {
+      color-scheme: light;
+      --ink: #111827;
+      --muted: #4b5563;
+      --line: #e5e7eb;
+      --accent: #007a72;
+      --accent-soft: #f0fdfa;
+      --paper: #ffffff;
+      --sidebar: #f9fafb;
+      --code-bg: #f3f4f6;
+      --code-ink: #111827;
+      --th-bg: #f3f4f6;
+      --th-ink: #1f2937;
+      --td-ink: #374151;
+      --p-ink: #374151;
+      --nav-a: #374151;
+      --nav-hover: #f3f4f6;
+      --callout-bg: #f0fdfa;
+      --callout-p: #134e4a;
+      --req-yes-bg: #fee2e2;
+      --req-yes-ink: #991b1b;
+      --req-no-bg: #f3f4f6;
+      --req-no-ink: #4b5563;
+      --method-post: #15803d;
+      --method-post-bg: #dcfce7;
+      --method-get: #1d4ed8;
+      --method-get-bg: #dbeafe;
+      --header-bg: #ffffff;
+    }
+    html[data-theme="dark"] {
+      color-scheme: dark;
+      --ink: #f0f2f5;
+      --muted: #9aa0aa;
+      --line: #2d303a;
+      --accent: #00BFB3;
+      --accent-soft: rgba(0, 191, 179, 0.14);
+      --paper: #111215;
+      --sidebar: #18191e;
+      --code-bg: #21232a;
+      --code-ink: #e5e7eb;
+      --th-bg: #21232a;
+      --th-ink: #f0f2f5;
+      --td-ink: #d1d5db;
+      --p-ink: #d1d5db;
+      --nav-a: #9aa0aa;
+      --nav-hover: #21232a;
+      --callout-bg: rgba(0, 191, 179, 0.08);
+      --callout-p: #5eead4;
+      --req-yes-bg: rgba(220, 38, 38, 0.22);
+      --req-yes-ink: #fca5a5;
+      --req-no-bg: #21232a;
+      --req-no-ink: #9aa0aa;
+      --method-post: #4ade80;
+      --method-post-bg: rgba(34, 197, 94, 0.15);
+      --method-get: #60a5fa;
+      --method-get-bg: rgba(59, 130, 246, 0.15);
+      --header-bg: #18191e;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 80px; }
+    body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font: 15px/1.65 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+      transition: background .2s ease, color .2s ease;
+    }
+    header {
+      height: 64px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      position: sticky;
+      top: 0;
+      background: var(--header-bg);
+      z-index: 10;
+      transition: background .2s ease, border-color .2s ease;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .header-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--line);
+      padding: 6px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background .15s, color .15s, border-color .15s;
+    }
+    .header-btn:hover {
+      background: var(--sidebar);
+      color: var(--ink);
+    }
+    .brand {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ink);
+      text-decoration: none;
+      letter-spacing: -0.3px;
+    }
+    .header-subtitle {
+      color: var(--muted);
+      border-left: 1px solid var(--line);
+      padding-left: 16px;
+      font-size: 14px;
+    }
+    .header-link {
+      font-size: 13px;
+      color: var(--muted);
+      text-decoration: none;
+      font-weight: 500;
+      padding: 6px 12px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      transition: background .15s ease, color .15s ease;
+    }
+    .header-link:hover {
+      background: var(--sidebar);
+      color: var(--ink);
+    }
+    nav {
+      position: fixed;
+      top: 64px;
+      bottom: 0;
+      width: 280px;
+      background: var(--sidebar);
+      border-right: 1px solid var(--line);
+      padding: 28px 16px;
+      overflow-y: auto;
+      transition: background .2s ease, border-color .2s ease;
+    }
+    nav strong {
+      display: block;
+      margin: 0 12px 10px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+    }
+    nav a {
+      display: block;
+      padding: 8px 12px;
+      color: var(--nav-a);
+      text-decoration: none;
+      border-left: 2px solid transparent;
+      font-size: 14px;
+      border-radius: 0 4px 4px 0;
+      transition: background .15s, color .15s, border-color .15s;
+    }
+    nav a:hover {
+      background: var(--nav-hover);
+      color: var(--ink);
+    }
+    nav a.active {
+      background: var(--accent-soft);
+      border-left-color: var(--accent);
+      color: var(--accent);
+      font-weight: 600;
+    }
+    main {
+      margin-left: 280px;
+      max-width: 980px;
+      padding: 40px 56px 100px;
+      min-width: 0;
+    }
+    .crumb {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    h1 {
+      font-size: 38px;
+      line-height: 1.15;
+      letter-spacing: -1.2px;
+      margin: 0 0 16px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    h2 {
+      font-size: 24px;
+      line-height: 1.3;
+      letter-spacing: -0.4px;
+      margin: 0 0 16px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    h3 {
+      font-size: 16px;
+      margin: 24px 0 12px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    p {
+      max-width: 76ch;
+      margin: 12px 0;
+      color: var(--p-ink);
+      font-size: 15px;
+    }
+    .lead {
+      font-size: 18px;
+      line-height: 1.5;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+    section {
+      padding: 36px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    section:first-of-type {
+      padding-top: 0;
+    }
+    section:last-of-type {
+      border-bottom: 0;
+    }
+    code {
+      font: 13px/1.5 Consolas, "Liberation Mono", Menlo, Courier, monospace;
+      background: var(--code-bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--code-ink);
+      overflow-wrap: anywhere;
+    }
+    .endpoint {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin: 16px 0 20px;
+    }
+    .method {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+    }
+    .method.post {
+      color: var(--method-post);
+      background: var(--method-post-bg);
+    }
+    .method.get {
+      color: var(--method-get);
+      background: var(--method-get-bg);
+    }
+    .endpoint code {
+      font-size: 15px;
+      font-weight: 600;
+      background: transparent;
+      padding: 0;
+    }
+    .callout {
+      border: 1px solid var(--line);
+      background: var(--callout-bg);
+      padding: 16px 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+    }
+    .callout p {
+      margin: 0;
+      color: var(--callout-p);
+      font-size: 14px;
+    }
+    .table-container {
+      margin: 20px 0 28px;
+      overflow-x: auto;
+    }
+    table {
+      border-collapse: separate;
+      border-spacing: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      width: 100%;
+      font-size: 14px;
+      text-align: left;
+    }
+    th {
+      background: var(--th-bg);
+      font-weight: 600;
+      color: var(--th-ink);
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--line);
+    }
+    td {
+      padding: 11px 14px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+      color: var(--td-ink);
+    }
+    tr:last-child td {
+      border-bottom: 0;
+    }
+    .req-yes {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--req-yes-ink);
+      background: var(--req-yes-bg);
+      padding: 1px 6px;
+      border-radius: 3px;
+    }
+    .req-no {
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--req-no-ink);
+      background: var(--req-no-bg);
+      padding: 1px 6px;
+      border-radius: 3px;
+    }
+    footer {
+      color: var(--muted);
+      font-size: 13px;
+      padding-top: 32px;
+      border-top: 1px solid var(--line);
+      margin-top: 40px;
+    }
+    .skip-nav {
+      position: fixed;
+      top: -40px;
+      left: 16px;
+      background: var(--ink);
+      color: #ffffff;
+      padding: 8px 14px;
+      border-radius: 4px;
+      font-size: 13px;
+      z-index: 100;
+      text-decoration: none;
+      transition: top .2s ease;
+    }
+    .skip-nav:focus {
+      top: 12px;
+    }
+    @media (max-width: 860px) {
+      header {
+        padding: 0 16px;
+      }
+      nav {
+        position: static;
+        width: 100%;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+        padding: 16px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 4px;
+      }
+      nav strong {
+        grid-column: 1 / -1;
+        margin: 0 8px 6px;
+      }
+      main {
+        margin-left: 0;
+        padding: 28px 18px 60px;
+      }
+      h1 {
+        font-size: 30px;
+      }
+      h2 {
+        font-size: 22px;
+      }
+    }
+    @media (max-width: 640px) {
+      .header-subtitle {
+        display: none;
+      }
+      header {
+        padding: 0 12px;
+      }
+      nav {
+        grid-template-columns: 1fr;
+      }
+      main {
+        min-width: 0;
+        max-width: 100%;
+        overflow-x: hidden;
+      }
+      .table-container {
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-nav" href="#contenido">Saltar al contenido</a>
+
+  <header>
+    <div class="header-left">
+      <a class="brand" href="#introduccion">MQTT Gateway</a>
+      <span class="header-subtitle">Documentación para Desarrolladores</span>
+    </div>
+    <div class="header-right">
+      <button type="button" id="theme-toggle" class="header-btn" title="Alternar tema">
+        <svg id="theme-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></svg>
+        <span id="theme-label">Tema</span>
+      </button>
+      <a class="header-link" href="/gateway/">Panel de Control</a>
+    </div>
+  </header>
+
+  <nav aria-label="Tabla de contenidos">
+    <strong>Especificación HTTP</strong>
+    <a href="#introduccion" class="active">Introducción</a>
+    <a href="#adaptadores">Adaptadores MQTT</a>
+    <a href="#admin">Acceso al panel</a>
+    <a href="#auth">Autenticación (/auth)</a>
+    <a href="#acl">Autorización (/acl)</a>
+    <a href="#health">Sondeo de salud (/health)</a>
+    <a href="#api-key">Cabecera X-EMQX-API-KEY</a>
+    <a href="#codigos-error">Códigos de error y fallos</a>
+  </nav>
+
+  <main id="contenido">
+    <section id="introduccion">
+      <div class="crumb">MQTT Gateway / Referencia de Integración</div>
+      <h1>Conecta tu bróker MQTT con tu backend</h1>
+      <p class="lead">Especificación contractual de endpoints HTTP requeridos para delegar la autenticación de clientes MQTT, la autorización de tópicos y el sondeo continuo de disponibilidad.</p>
+      <p>MQTT Gateway actúa como un proxy inverso de alta velocidad y baja latencia que desacopla EMQX, Mosquitto, VerneMQ y otros brókers de los sistemas y microservicios de backend (IoT Core Service, Device Gateway, Telemetry Service y servicios futuros). Cuando un cliente MQTT se conecta o intenta publicar/suscribirse, el gateway enruta la decisión al backend correspondiente.</p>
+      <p>Esta documentación es pública y accesible en <code>/gateway/docs</code> sin necesidad de credenciales ni token administrativo.</p>
+
+      <h2>Cabeceras estándar en solicitudes salientes</h2>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Cabecera</th>
+              <th scope="col">Tipo</th>
+              <th scope="col">Requerida</th>
+              <th scope="col">Descripción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>Content-Type</code></td>
+              <td>String</td>
+              <td><span class="req-yes">Obligatoria</span></td>
+              <td>Valor fijo <code>application/json</code>. El payload de la solicitud siempre es un objeto JSON.</td>
+            </tr>
+            <tr>
+              <td><code>X-EMQX-API-KEY</code></td>
+              <td>String</td>
+              <td><span class="req-yes">Si está configurada</span></td>
+              <td>Clave secreta compartida entre el gateway y el backend. No se envía si el backend fue registrado sin clave.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout">
+        <p><strong>Seguridad y Red:</strong> Todos los endpoints de backend deben responder dentro del límite estricto de timeout configurado (2 000 ms predeterminado). Si un backend excede este tiempo o responde un código de error, el gateway denegará el acceso por seguridad de red (criterio fail-closed).</p>
+      </div>
+    </section>
+
+<section id="adaptadores"><h2>Adaptadores MQTT</h2><p>Todos los endpoints utilizan POST. Las rutas se muestran completas; /api/v1/gateway/auth y /api/v1/gateway/acl conservan el formato EMQX. Los apartados de backend que siguen describen el contrato saliente compartido.</p><div class="table-container"><table><thead><tr><th scope="col">Bróker</th><th scope="col">Autenticación</th><th scope="col">Autorización</th></tr></thead><tbody><tr><td>EMQX</td><td><code>/api/v1/gateway/emqx/auth</code></td><td><code>/api/v1/gateway/emqx/acl</code></td></tr><tr><td>Mosquitto</td><td><code>/api/v1/gateway/mosquitto/auth</code></td><td><code>/api/v1/gateway/mosquitto/acl</code></td></tr><tr><td>VerneMQ</td><td><code>/api/v1/gateway/vernemq/auth</code></td><td><code>/api/v1/gateway/vernemq/acl</code></td></tr><tr><td>Genérico</td><td><code>/api/v1/gateway/generic/auth</code></td><td><code>/api/v1/gateway/generic/acl</code></td></tr></tbody></table></div><h3>EMQX y Genérico</h3><p>Enviar <code>Content-Type: application/json</code>. Auth recibe <code>{&quot;clientid&quot;:&quot;device_sensor_01&quot;,&quot;username&quot;:&quot;usuario&quot;,&quot;password&quot;:&quot;clave&quot;}</code>. ACL recibe <code>{&quot;clientid&quot;:&quot;device_sensor_01&quot;,&quot;username&quot;:&quot;usuario&quot;,&quot;topic&quot;:&quot;devices/telemetry&quot;,&quot;action&quot;:&quot;publish&quot;}</code>; para suscripciones, <code>action</code> es <code>subscribe</code>. Configurar el cuerpo HTTP de EMQX con estas propiedades y apuntar a las rutas /emqx/auth y /emqx/acl. EMQX recibe HTTP 200 con <code>{&quot;result&quot;:&quot;allow&quot;}</code>, <code>{&quot;result&quot;:&quot;deny&quot;}</code> o <code>{&quot;result&quot;:&quot;ignore&quot;}</code>. En allow se conserva <code>is_superuser</code>. Genérico recibe HTTP 200 con <code>{&quot;allowed&quot;:true,&quot;status&quot;:&quot;allow&quot;}</code>, <code>{&quot;allowed&quot;:false,&quot;status&quot;:&quot;deny&quot;}</code> o <code>{&quot;allowed&quot;:false,&quot;status&quot;:&quot;ignore&quot;}</code>.</p><h3>Mosquitto con mosquitto-go-auth</h3><p>Configurar el backend HTTP del complemento: <code>auth_opt_backends http</code>, <code>auth_opt_http_host 127.0.0.1</code>, <code>auth_opt_http_port 8085</code>, <code>auth_opt_http_getuser_uri /api/v1/gateway/mosquitto/auth</code>, <code>auth_opt_http_aclcheck_uri /api/v1/gateway/mosquitto/acl</code>, <code>auth_opt_http_method POST</code>, <code>auth_opt_http_params_mode json</code> y <code>auth_opt_http_response_mode status</code>. La ruta del complemento nativo <code>auth_plugin</code> depende de la instalación de Mosquitto.</p><p>Auth recibe <code>{&quot;clientid&quot;:&quot;device_sensor_01&quot;,&quot;username&quot;:&quot;usuario&quot;,&quot;password&quot;:&quot;clave&quot;}</code>. ACL recibe <code>{&quot;clientid&quot;:&quot;device_sensor_01&quot;,&quot;username&quot;:&quot;usuario&quot;,&quot;topic&quot;:&quot;devices/telemetry&quot;,&quot;acc&quot;:2}</code>. <code>acc=2</code> se traduce a <code>publish</code>; <code>acc=1</code> y <code>acc=4</code> a <code>subscribe</code>. Otros valores se deniegan. Se admiten JSON y formularios <code>application/x-www-form-urlencoded</code> con esos mismos campos. Respuesta: HTTP 200 para allow, 400 para deny y 404 para ignore, con <code>result</code> en JSON para diagnóstico. En modo status el complemento interpreta tanto 400 como 404 como un resultado no permitido; la cadena de backends del bróker determina si se prueban otros proveedores.</p><h3>VerneMQ con vmq_webhooks</h3><p>Activar <code>plugins.vmq_webhooks = on</code>. Registrar tres webhooks: <code>auth_on_register</code> apunta a <code>/api/v1/gateway/vernemq/auth</code>; <code>auth_on_publish</code> y <code>auth_on_subscribe</code> apuntan a <code>/api/v1/gateway/vernemq/acl</code>. Para cada webhook configurar <code>vmq_webhooks.&lt;nombre&gt;.hook</code> y <code>vmq_webhooks.&lt;nombre&gt;.endpoint</code> con el hook y la URL completa. Se admiten también los nombres de esos tres hooks terminados en <code>_m5</code> para MQTT 5.</p><p>El complemento envía JSON y la cabecera <code>vernemq-hook</code>. Auth recibe <code>{&quot;client_id&quot;:&quot;device_sensor_01&quot;,&quot;username&quot;:&quot;usuario&quot;,&quot;password&quot;:&quot;clave&quot;}</code>. Publicación recibe <code>{&quot;client_id&quot;:&quot;device_sensor_01&quot;,&quot;username&quot;:&quot;usuario&quot;,&quot;topic&quot;:&quot;devices/telemetry&quot;,&quot;qos&quot;:1}</code>. Suscripción recibe <code>{&quot;client_id&quot;:&quot;device_sensor_01&quot;,&quot;username&quot;:&quot;usuario&quot;,&quot;topics&quot;:[{&quot;topic&quot;:&quot;devices/telemetry&quot;,&quot;qos&quot;:1}]}</code>. <code>client_id</code> se copia a <code>clientid</code>; el hook de publicación añade <code>action=publish</code> y cada entrada de <code>topics</code> añade <code>action=subscribe</code>. Cada tópico tiene resolución, métrica y auditoría propias. Todos deben devolver allow: un deny deniega el conjunto; sin deny, un ignore produce next. Una lista vacía o inválida se deniega. Las respuestas usan HTTP 200: <code>{&quot;result&quot;:&quot;ok&quot;}</code> para allow, <code>{&quot;result&quot;:{&quot;error&quot;:&quot;not_allowed&quot;}}</code> para deny y <code>{&quot;result&quot;:&quot;next&quot;}</code> para ignore. No se devuelven modificadores de tópicos ni privilegios de superusuario específicos de VerneMQ.</p><h3>Contrato saliente compartido</h3><p>Los adaptadores traducen entrada y respuesta; los backends HTTP continúan recibiendo el contrato JSON existente (<code>clientid</code>, <code>username</code>, <code>password</code> para auth; <code>clientid</code>, <code>username</code>, <code>topic</code>, <code>action</code> para ACL). Se conservan campos adicionales, incluyendo los originales del bróker. Los backends responden con HTTP 2xx y <code>result=allow|deny|ignore</code>. La selección sigue siendo por prefijo de clientid para auth y de topic para ACL. JSON inválido, timeout y fallo del backend producen deny. Los privilegios de superusuario siguen siendo exclusivos del formato EMQX; en los otros brókers la autorización ACL se evalúa por separado.</p><p>Referencias del protocolo: <a href="https://github.com/iegomez/mosquitto-go-auth#http">mosquitto-go-auth</a> y <a href="https://docs.vernemq.com/plugin-development/webhookplugins">webhooks de VerneMQ</a>.</p><p></p></section><section id="admin"><h2>Acceso autónomo al panel</h2><p>La configuración está bajo <code>gateway.admin</code> en application.yml:</p><div class="table-container"><table><thead><tr><th scope="col">Propiedad en gateway.admin</th><th scope="col">Variable de entorno</th><th scope="col">Valor por defecto</th></tr></thead><tbody><tr><td>auth-provider</td><td>GATEWAY_ADMIN_AUTH_PROVIDER</td><td>internal</td></tr><tr><td>username</td><td>GATEWAY_ADMIN_USERNAME</td><td>admin</td></tr><tr><td>password</td><td>GATEWAY_ADMIN_PASSWORD</td><td>admin-secret-2026$</td></tr></tbody></table></div><p>En modo <code>internal</code>, POST <code>/api/admin/auth/login</code> recibe <code>{&quot;username&quot;:&quot;admin&quot;,&quot;password&quot;:&quot;&lt;contraseña configurada&gt;&quot;}</code> y devuelve <code>{&quot;token&quot;:&quot;&lt;UUID aleatorio&gt;&quot;,&quot;username&quot;:&quot;admin&quot;}</code>. Credenciales incorrectas: HTTP 401; campos vacíos: HTTP 400. El token se conserva únicamente en memoria y caduca ocho horas después de su emisión, sin renovación por actividad. Se pueden emitir varias sesiones. Reiniciar invalida todas las sesiones. Las entradas caducadas se eliminan al verificarlas y en cada login exitoso.</p><p>Todas las operaciones administrativas protegidas y GET/POST <code>/api/admin/auth/verify</code> requieren <code>Authorization: Bearer &lt;token&gt;</code>. La verificación correcta devuelve <code>{&quot;valid&quot;:true}</code>; un token ausente, desconocido o caducado devuelve HTTP 401. El panel sigue funcionando si EMQX está detenido. Configurar GATEWAY_ADMIN_PASSWORD en el entorno del servicio para sustituir la contraseña inicial.</p><p>En modo <code>emqx</code>, login delega en POST <code>/api/v5/login</code> y cada verificación delega en GET <code>/api/v5/users</code> del Dashboard indicado por GATEWAY_EMQX_URL. Los tokens internos no sirven en modo EMQX, ni los de EMQX en modo interno. No hay cambio automático de proveedor ante un fallo de EMQX. La integración existente por fragmento, almacenamiento e iframe continúa siempre que el token corresponda al proveedor configurado. Salir del panel elimina su sesión del navegador; el token interno sigue vigente hasta caducar o reiniciar. No se añade un endpoint de revocación. </p></section>
+    <section id="auth">
+      <h2>Autenticación de Clientes</h2>
+      <div class="endpoint">
+        <span class="method post">POST</span>
+        <code>/auth</code>
+      </div>
+      <p>Invocado por el gateway al recibir una solicitud de conexión MQTT (paquete CONNECT). El servicio de backend debe validar el identificador de cliente y sus credenciales.</p>
+
+      <h3>Parámetros del cuerpo de la solicitud (JSON)</h3>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Campo</th>
+              <th scope="col">Tipo</th>
+              <th scope="col">Requerido</th>
+              <th scope="col">Descripción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>clientid</code></td>
+              <td>String</td>
+              <td><span class="req-yes">Sí</span></td>
+              <td>Identificador único del cliente MQTT (ejemplo: <code>cliente-alerta-104</code>).</td>
+            </tr>
+            <tr>
+              <td><code>username</code></td>
+              <td>String</td>
+              <td><span class="req-yes">Sí</span></td>
+              <td>Nombre de usuario presentado en la conexión MQTT.</td>
+            </tr>
+            <tr>
+              <td><code>password</code></td>
+              <td>String</td>
+              <td><span class="req-yes">Sí</span></td>
+              <td>Contraseña presentada en la conexión MQTT. Tratar siempre como información confidencial.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Parámetros de respuesta esperada (JSON)</h3>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Campo</th>
+              <th scope="col">Tipo</th>
+              <th scope="col">Requerido</th>
+              <th scope="col">Valores admitidos y significado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>result</code></td>
+              <td>String (Enum)</td>
+              <td><span class="req-yes">Sí</span></td>
+              <td><code>allow</code> para autorizar la conexión del cliente; <code>deny</code> para rechazarla.</td>
+            </tr>
+            <tr>
+              <td><code>is_superuser</code></td>
+              <td>Boolean</td>
+              <td><span class="req-no">Opcional</span></td>
+              <td><code>true</code> otorga privilegios de superusuario en el broker EMQX. Por defecto es <code>false</code>.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>El backend debe retornar código HTTP <code>200 OK</code> con el objeto JSON <code>{"result":"allow"}</code> o <code>{"result":"deny"}</code>. La decisión de autenticación se expresa formalmente en el campo <code>result</code>.</p>
+    </section>
+
+    <section id="acl">
+      <h2>Autorización de Tópicos (ACL)</h2>
+      <div class="endpoint">
+        <span class="method post">POST</span>
+        <code>/acl</code>
+      </div>
+      <p>Invocado por el gateway cuando un cliente conectado intenta publicar un mensaje o suscribirse a un tópico MQTT.</p>
+
+      <h3>Parámetros del cuerpo de la solicitud (JSON)</h3>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Campo</th>
+              <th scope="col">Tipo</th>
+              <th scope="col">Requerido</th>
+              <th scope="col">Descripción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>clientid</code></td>
+              <td>String</td>
+              <td><span class="req-yes">Sí</span></td>
+              <td>Identificador del cliente MQTT solicitante.</td>
+            </tr>
+            <tr>
+              <td><code>username</code></td>
+              <td>String</td>
+              <td><span class="req-yes">Sí</span></td>
+              <td>Nombre de usuario del cliente MQTT autenticado.</td>
+            </tr>
+            <tr>
+              <td><code>topic</code></td>
+              <td>String</td>
+              <td><span class="req-yes">Sí</span></td>
+              <td>Tópico MQTT objeto de la acción (ejemplo: <code>sensores/panico/sector2</code>).</td>
+            </tr>
+            <tr>
+              <td><code>action</code></td>
+              <td>String (Enum)</td>
+              <td><span class="req-yes">Sí</span></td>
+              <td>Acción solicitada: <code>publish</code> (publicar) o <code>subscribe</code> (suscribirse).</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Parámetros de respuesta esperada (JSON)</h3>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Campo</th>
+              <th scope="col">Tipo</th>
+              <th scope="col">Requerido</th>
+              <th scope="col">Valores admitidos y significado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>result</code></td>
+              <td>String (Enum)</td>
+              <td><span class="req-yes">Sí</span></td>
+              <td><code>allow</code> para permitir la acción; <code>deny</code> para denegarla; <code>ignore</code> para omitir la regla.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>El backend debe retornar código HTTP <code>200 OK</code> con el objeto JSON <code>{"result":"allow"}</code> o <code>{"result":"deny"}</code>.</p>
+    </section>
+
+    <section id="health">
+      <h2>Sondeo de Salud y Disponibilidad</h2>
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <code>/health</code>
+      </div>
+      <p>Endpoint de sondeo continuo consultado automáticamente por el gateway para verificar la vitalidad del servicio, calcular el tiempo de actividad (uptime) y graficar el historial de sondeos en el panel administrativo.</p>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Elemento</th>
+              <th scope="col">Tipo</th>
+              <th scope="col">Requerido</th>
+              <th scope="col">Descripción</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Cuerpo de solicitud</td>
+              <td>Sin cuerpo</td>
+              <td><span class="req-no">No</span></td>
+              <td>La petición es un GET sin payload.</td>
+            </tr>
+            <tr>
+              <td>Parámetros</td>
+              <td>Ninguno</td>
+              <td><span class="req-no">No</span></td>
+              <td>No requiere parámetros en la URL ni query string.</td>
+            </tr>
+            <tr>
+              <td>Cabecera X-EMQX-API-KEY</td>
+              <td>String</td>
+              <td><span class="req-no">Opcional</span></td>
+              <td>El gateway incluye la clave configurada si el backend la tiene establecida.</td>
+            </tr>
+            <tr>
+              <td>Respuesta esperada</td>
+              <td>Estado HTTP</td>
+              <td><span class="req-yes">Sí</span></td>
+              <td>Códigos HTTP <code>2xx</code> indican servicio en óptimas condiciones. Códigos <code>4xx</code> indican servicio accesible con control de acceso. Códigos <code>5xx</code> indican falla interna en el backend.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>El intervalo regular de sondeo es de 30 segundos, con un timeout máximo de 2 000 ms. La operación debe ser rápida, de solo lectura y no ejecutar escrituras pesadas en base de datos.</p>
+    </section>
+
+    <section id="api-key">
+      <h2>Seguridad y Cabecera X-EMQX-API-KEY</h2>
+      <p>Para proteger los endpoints de autenticación y autorización frente a accesos no autorizados en la red interna, el gateway soporta una clave secreta compartida transmitida en la cabecera HTTP <code>X-EMQX-API-KEY</code>.</p>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Recomendación</th>
+              <th scope="col">Buenas prácticas de integración</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Transporte Seguro</td>
+              <td>Utilizar siempre HTTPS en entornos productivos para proteger la clave frente a interceptación.</td>
+            </tr>
+            <tr>
+              <td>Validación Estricta</td>
+              <td>El backend debe verificar que el valor recibido en <code>X-EMQX-API-KEY</code> coincida de forma exacta y en tiempo constante con la clave configurada.</td>
+            </tr>
+            <tr>
+              <td>Aislamiento de Tokens</td>
+              <td>La clave <code>X-EMQX-API-KEY</code> es exclusiva entre el gateway y el backend. Nunca debe reutilizarse el token Bearer administrativo ni credenciales de usuario final.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="codigos-error">
+      <h2>Códigos de Error y Resiliencia</h2>
+      <p>El gateway aplica una política estricta de seguridad ante fallos de backend (criterio fail-closed). La siguiente tabla detalla cómo procesa el gateway cada estado de respuesta:</p>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Respuesta del Backend</th>
+              <th scope="col">Interpretación del Gateway</th>
+              <th scope="col">Acción sobre el Cliente MQTT</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>HTTP 200</code> con <code>{"result":"allow"}</code></td>
+              <td>Aprobación exitosa</td>
+              <td>Acceso permitido.</td>
+            </tr>
+            <tr>
+              <td><code>HTTP 200</code> con <code>{"result":"deny"}</code></td>
+              <td>Denegación formal por política del backend</td>
+              <td>Acceso rechazado de inmediato.</td>
+            </tr>
+            <tr>
+              <td><code>HTTP 4xx</code> (400, 401, 403, 404)</td>
+              <td>Solicitud inválida o autorización rechazada en el backend</td>
+              <td>Acceso denegado (fallo registrado en auditoría).</td>
+            </tr>
+            <tr>
+              <td><code>HTTP 5xx</code> (500, 502, 503, 504)</td>
+              <td>Falla interna en el backend</td>
+              <td>Acceso denegado. Se registra incidente si persiste.</td>
+            </tr>
+            <tr>
+              <td>Timeout (&gt; 2 000 ms) o conexión rehusada</td>
+              <td>Servicio no disponible o saturado</td>
+              <td>Acceso denegado inmediatamente tras el tiempo límite.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer>
+      Documentación técnica oficial de MQTT Gateway. Sin dependencias externas ni scripts de terceros.
+      <br><small style="color: var(--muted); font-size: 11px; margin-top: 8px; display: inline-block;">Aviso Legal: Todas las marcas comerciales mencionadas (EMQX, Mosquitto, VerneMQ, HiveMQ) pertenecen a sus respectivos dueños. Este software es un proyecto comunitario independiente de código visible bajo licencia no comercial.</small>
+    </footer>
+  </main>
+
+  <script>
+    const themeBtn = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
+    const themeLabel = document.getElementById('theme-label');
+
+    function renderTheme() {
+      const saved = localStorage.getItem('gateway_theme') || 'system';
+      const effective = saved === 'system'
+        ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        : saved;
+      document.documentElement.setAttribute('data-theme', effective);
+      if (themeIcon && themeLabel) {
+        if (effective === 'dark') {
+          themeIcon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
+          themeLabel.textContent = 'Oscuro';
+        } else {
+          themeIcon.innerHTML = '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
+          themeLabel.textContent = 'Claro';
+        }
+      }
+    }
+
+    if (themeBtn) {
+      themeBtn.addEventListener('click', function() {
+        const current = localStorage.getItem('gateway_theme') || 'system';
+        const effective = current === 'system'
+          ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : current;
+        const next = effective === 'dark' ? 'light' : 'dark';
+        localStorage.setItem('gateway_theme', next);
+        renderTheme();
+      });
+    }
+
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function() {
+      if ((localStorage.getItem('gateway_theme') || 'system') === 'system') {
+        renderTheme();
+      }
+    });
+
+    renderTheme();
+  </script>
+</body>
+</html>
