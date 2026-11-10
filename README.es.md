@@ -89,7 +89,18 @@ para ver payloads y configuración.
 - Autenticación administrativa interna o delegada a EMQX. Las sesiones internas
   caducan a las ocho horas y se pierden al reiniciar.
 - Rutas y estado operativo en archivos JSON locales, sin base de datos.
-- Integración con Agentes de IA: Asistentes y LLMs pueden consumir la documentación técnica directamente desde [`/llms.txt`](docs/llms.txt) o solicitando `/gateway/docs` con la cabecera `Accept: text/markdown`.
+
+## 🤖 Desarrolla con Agentes de IA (Cursor, Claude, Copilot)
+
+Si utilizas asistentes o agentes de desarrollo con IA como **Cursor**, **Claude Code**, **GitHub Copilot**, **Windsurf** o **ChatGPT**, puedes copiar y pegar el siguiente prompt para que tu asistente implemente tu backend o conecte tu bróker MQTT:
+
+```text
+Ayúdame a crear un servicio de backend para MQTT Gateway. Lee primero la especificación técnica en https://raw.githubusercontent.com/kgvicente/mqtt-gateway/main/docs/llms.txt (o /gateway/llms.txt) y guíame paso a paso para implementar los endpoints /auth, /acl y /health.
+```
+
+- **Especificación para Agentes:** [`docs/llms.txt`](docs/llms.txt) y [`docs/llms-full.txt`](docs/llms-full.txt).
+- **Negociación de Contenido HTTP:** Consultar `/gateway/docs` con la cabecera `Accept: text/markdown` o acceder a `/gateway/docs.md` devuelve Markdown puro optimizado para ventanas de contexto.
+- **Botón Copiar Prompt en la Documentación:** En `/gateway/docs` dispones de un botón directo de copiado y pestañas de contexto (desarrollo de backend, configuración de bróker y onboarding rápido).
 
 <details>
 <summary>Capturas estáticas del panel y vista móvil</summary>

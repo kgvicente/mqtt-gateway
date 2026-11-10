@@ -89,7 +89,18 @@ for payloads and configuration.
 - Use internal administrative authentication or delegate it to EMQX. Internal
   tokens expire after eight hours and are lost on restart.
 - Store routes and operational state in local JSON files, without a database.
-- AI Agent Integration: Coding assistants and LLMs can consume clean technical documentation directly via [`/llms.txt`](docs/llms.txt) or by requesting `/gateway/docs` with `Accept: text/markdown`.
+
+## 🤖 Build with AI Coding Agents (Cursor, Claude, Copilot)
+
+If you use AI coding assistants such as **Cursor**, **Claude Code**, **GitHub Copilot**, **Windsurf**, or **ChatGPT**, you can copy and paste the prompt below to automatically build your backend service or integrate your MQTT broker:
+
+```text
+Help me implement a backend service for MQTT Gateway. Read https://raw.githubusercontent.com/kgvicente/mqtt-gateway/main/docs/llms.txt (or /gateway/llms.txt) first, then walk me through building the /auth, /acl, and /health endpoints step by step.
+```
+
+- **Technical Reference for Agents:** [`docs/llms.txt`](docs/llms.txt) and [`docs/llms-full.txt`](docs/llms-full.txt).
+- **HTTP Content Negotiation:** Querying `/gateway/docs` with `Accept: text/markdown` or requesting `/gateway/docs.md` serves pure Markdown designed for LLM context windows.
+- **Copy Prompt in UI:** The web documentation at `/gateway/docs` includes a 1-click **"Copy Prompt"** button and context tabs for backend development, broker configuration, and fast onboarding.
 
 <details>
 <summary>Static dashboard screenshots and mobile view</summary>
