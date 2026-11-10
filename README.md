@@ -89,6 +89,7 @@ for payloads and configuration.
 - Use internal administrative authentication or delegate it to EMQX. Internal
   tokens expire after eight hours and are lost on restart.
 - Store routes and operational state in local JSON files, without a database.
+- AI Agent Integration: Coding assistants and LLMs can consume clean technical documentation directly via [`/llms.txt`](docs/llms.txt) or by requesting `/gateway/docs` with `Accept: text/markdown`.
 
 <details>
 <summary>Static dashboard screenshots and mobile view</summary>

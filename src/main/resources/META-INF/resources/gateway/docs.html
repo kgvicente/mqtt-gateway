@@ -755,7 +755,7 @@
 
     <footer>
       Documentación técnica oficial de MQTT Gateway. Sin dependencias externas ni scripts de terceros.
-      <br><small style="color: var(--muted); font-size: 11px; margin-top: 8px; display: inline-block;">Aviso Legal: Todas las marcas comerciales mencionadas (EMQX, Mosquitto, VerneMQ, HiveMQ) pertenecen a sus respectivos dueños. Este software es un proyecto comunitario independiente de código visible bajo licencia no comercial.</small>
+      <br><small style="color: var(--muted); font-size: 11px; margin-top: 8px; display: inline-block;">Aviso Legal: Todas las marcas comerciales mencionadas (EMQX, Mosquitto, VerneMQ, HiveMQ) pertenecen a sus respectivos dueños. Este software es un proyecto comunitario independiente de código abierto bajo licencia GNU AGPL-3.0 con opción de licenciamiento comercial.</small>
     </footer>
   </main>
 
@@ -800,6 +800,76 @@
     });
 
     renderTheme();
+
+    /* Navegación dinámica y ScrollSpy */
+    const navLinks = Array.from(document.querySelectorAll('nav a'));
+    const sections = Array.from(document.querySelectorAll('main section[id]'));
+    const linkMap = new Map();
+    navLinks.forEach(link => {
+      const href = link.getAttribute('href');
+      if (href && href.startsWith('#')) {
+        linkMap.set(href.slice(1), link);
+      }
+    });
+
+    function setActiveSection(id) {
+      if (!id || !linkMap.has(id)) return;
+      navLinks.forEach(l => l.classList.remove('active'));
+      const activeLink = linkMap.get(id);
+      activeLink.classList.add('active');
+    }
+
+    let clickLockTimeout = null;
+    navLinks.forEach(link => {
+      link.addEventListener('click', function() {
+        const href = this.getAttribute('href');
+        if (href && href.startsWith('#')) {
+          const targetId = href.slice(1);
+          setActiveSection(targetId);
+          clearTimeout(clickLockTimeout);
+          clickLockTimeout = setTimeout(() => {
+            clickLockTimeout = null;
+          }, 900);
+        }
+      });
+    });
+
+    let scrollTicking = false;
+    function onScroll() {
+      if (clickLockTimeout) return;
+      if (scrollTicking) return;
+      scrollTicking = true;
+      window.requestAnimationFrame(() => {
+        let currentId = null;
+
+        if ((window.innerHeight + window.scrollY) >= (document.documentElement.scrollHeight - 60)) {
+          currentId = sections[sections.length - 1].id;
+        } else {
+          const triggerLine = 140;
+          for (let i = 0; i < sections.length; i++) {
+            const sec = sections[i];
+            const rect = sec.getBoundingClientRect();
+            if (rect.top <= triggerLine && rect.bottom > triggerLine) {
+              currentId = sec.id;
+              break;
+            }
+          }
+        }
+
+        if (currentId) {
+          setActiveSection(currentId);
+        }
+        scrollTicking = false;
+      });
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    if (window.location.hash) {
+      setActiveSection(window.location.hash.slice(1));
+    } else {
+      onScroll();
+    }
   </script>
 </body>
 </html>
