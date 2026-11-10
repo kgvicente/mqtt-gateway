@@ -8,7 +8,7 @@ Conecta EMQX, Mosquitto y VerneMQ con tus backends HTTP sin mantener una políti
 de enrutamiento distinta por bróker. Administra rutas, consulta sondeos de salud
 y revisa decisiones de acceso desde un único panel.
 
-![Panel de MQTT Gateway con tarjetas de backends y datos de salud](docs/images/dashboard.png)
+![Demostración del panel de administración de MQTT Gateway](docs/images/demo.gif)
 
 *UI real con datos ilustrativos; no es una medición de rendimiento.
 El panel administrativo actual está en español.*
@@ -91,7 +91,9 @@ para ver payloads y configuración.
 - Rutas y estado operativo en archivos JSON locales, sin base de datos.
 
 <details>
-<summary>Detalle del backend y vista móvil</summary>
+<summary>Capturas estáticas del panel y vista móvil</summary>
+
+![Panel de MQTT Gateway con tarjetas de backends y datos de salud](docs/images/dashboard.png)
 
 ![Detalle del backend con sondeos y gráfica de latencia](docs/images/backend-detail.png)
 

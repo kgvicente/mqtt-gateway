@@ -8,7 +8,7 @@ Connect EMQX, Mosquitto and VerneMQ to your HTTP backends without maintaining a
 separate routing policy for each broker. Manage routes, inspect health probes
 and review access decisions from a single admin panel.
 
-![MQTT Gateway admin panel with backend cards and health information](docs/images/dashboard.png)
+![MQTT Gateway admin panel demo](docs/images/demo.gif)
 
 *Actual UI with illustrative data, not a performance benchmark.
 The current admin UI is in Spanish.*
@@ -91,7 +91,9 @@ for payloads and configuration.
 - Store routes and operational state in local JSON files, without a database.
 
 <details>
-<summary>Backend details and mobile view</summary>
+<summary>Static dashboard screenshots and mobile view</summary>
+
+![MQTT Gateway admin panel with backend cards and health information](docs/images/dashboard.png)
 
 ![Backend details with health probes and latency chart](docs/images/backend-detail.png)
 
