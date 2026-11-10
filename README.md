@@ -139,11 +139,12 @@ its development.
 
 ## License
 
-Project-owned code is **source-available** under
-[PolyForm Noncommercial License 1.0.0](LICENSE). Commercial uses outside its
-permissions require a separate license from the rights holder; contact
-[@kgvicente](https://github.com/kgvicente). This is not an unrestricted open-source
-license. Third-party components retain their [own licenses](NOTICE).
+Project-owned code is licensed under the **[GNU Affero General Public License v3.0 (AGPL-3.0)](LICENSE)**.
+
+### Commercial Licensing
+If your organization needs to use, embed, or deliver MQTT Gateway without the copyleft obligations of the AGPL-3.0 (for example, inside closed-source proprietary software or proprietary commercial platforms), commercial licenses and support agreements are available. Contact [@kgvicente](https://github.com/kgvicente) for commercial inquiries.
+
+Third-party components retain their [own licenses](NOTICE).
 
 This independent project is not affiliated with or endorsed by EMQX, Mosquitto,
 VerneMQ or their respective owners. Their names and trademarks belong to them.

@@ -34,8 +34,8 @@ broker, a Java runtime or production credentials.
 For the Docker Compose demo and source code:
 https://github.com/kgvicente/mqtt-gateway/tree/v{version}
 
-Project-owned code: PolyForm Noncommercial 1.0.0. See LICENSE and NOTICE.
-Commercial uses outside the license permissions require a separate license.
+Project-owned code: GNU Affero General Public License v3.0 (AGPL-3.0). See LICENSE and NOTICE.
+Commercial licensing: https://github.com/kgvicente/mqtt-gateway#commercial-licensing
 """
 # ponytail: distribuir el fast-jar completo evita presentar el JAR principal como autosuficiente.
 with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as bundle:

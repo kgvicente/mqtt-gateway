@@ -139,11 +139,12 @@ Si el proyecto te resulta útil, considera darle una estrella para seguir su evo
 
 ## Licencia
 
-El código propio es de **código visible** bajo
-[PolyForm Noncommercial License 1.0.0](LICENSE). Los usos comerciales fuera de sus
-permisos requieren una licencia aparte del titular; contacta con
-[@kgvicente](https://github.com/kgvicente). No es una licencia de código abierto
-sin restricciones. Los componentes de terceros conservan [sus licencias](NOTICE).
+El código de este proyecto es software libre bajo los términos de la **[GNU Affero General Public License v3.0 (AGPL-3.0)](LICENSE)**.
+
+### Licenciamiento comercial
+Si tu organización necesita utilizar, incrustar o distribuir MQTT Gateway sin las obligaciones copyleft de la AGPL-3.0 (por ejemplo, dentro de software propietario cerrado o plataformas comerciales privadas), ofrecemos licencias comerciales propietarias y acuerdos de soporte. Para consultas y acuerdos de licencia, contacta con [@kgvicente](https://github.com/kgvicente).
+
+Los componentes de terceros conservan [sus licencias](NOTICE).
 
 El proyecto es independiente y no está afiliado ni respaldado por EMQX, Mosquitto,
 VerneMQ o sus titulares. Sus nombres y marcas pertenecen a sus respectivos dueños.

@@ -112,5 +112,5 @@ docker compose down --volumes
 - La demo utiliza una red y un volumen aislados de Compose. No configura un bróker
   externo ni un servicio systemd existente.
 
-El código propio conserva [PolyForm Noncommercial 1.0.0](../LICENSE).
+El código propio está disponible bajo [GNU AGPL-3.0](../LICENSE).
 Las imágenes externas y sus componentes mantienen sus licencias originales.

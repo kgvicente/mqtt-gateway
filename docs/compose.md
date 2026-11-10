@@ -109,5 +109,5 @@ docker compose down --volumes
 - This demo uses an isolated Compose network and volume. It does not configure
   an existing external broker or systemd service.
 
-Project-owned code remains under [PolyForm Noncommercial 1.0.0](../LICENSE).
+Project-owned code is available under [GNU AGPL-3.0](../LICENSE).
 External images and their components retain their original licenses.

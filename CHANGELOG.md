@@ -11,7 +11,7 @@ Primera versión pública para evaluación y demostraciones locales.
 - Demo Docker Compose con gateway, backend y Mosquitto; inicialización idempotente.
 - Pruebas MQTT 5 de entrega de mensajes y rechazo de credenciales y permisos.
 - Distribución JVM con JRE/JDK 25; Dockerfile con ejecución sin root.
-- Código propio bajo PolyForm Noncommercial 1.0.0 y avisos de terceros conservados.
+- Código propio bajo GNU Affero General Public License v3.0 (AGPL-3.0) y opción de licenciamiento comercial; avisos de terceros conservados.
 
 La imagen validada de la demo usa Mosquitto 2.0.15 y el complemento archivado
 mosquitto-go-auth. Es una demo local sin TLS. EMQX y VerneMQ conservan validación

@@ -118,6 +118,6 @@ dependencias HTTP simuladas. No necesita el backend de demostración ni un brók
 
 ## Licencia
 
-El código propio está disponible bajo [PolyForm Noncommercial 1.0.0](../LICENSE).
+El código propio está disponible bajo [GNU AGPL-3.0](../LICENSE).
 Los usos comerciales fuera de sus permisos requieren una licencia aparte del
 titular. Los componentes de terceros conservan [sus propias licencias](../NOTICE).
