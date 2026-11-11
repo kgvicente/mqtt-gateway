@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    # ponytail: un solo entorno Linux/JVM; ampliar a una matriz si se requiere soporte adicional.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Build
+        run: ./mvnw package -DskipTests -B -ntp
+
+      - name: Smoke tests
+        run: python3 scripts/smoke.py
+
+      - name: Start Docker Compose
+        run: docker compose up --build --wait
+
+      - name: MQTT integration tests
+        run: docker compose --profile test run --rm mqtt-tests
+
+      - name: Clean up Docker Compose
+        if: always()
+        run: docker compose down -v
