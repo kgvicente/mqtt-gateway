@@ -26,6 +26,7 @@ public class AdminResource {
     @Context jakarta.ws.rs.core.HttpHeaders requestHeaders;
     @Inject GatewayState state;
     @Inject GatewayConfig config;
+    @Inject HostMetricsService hostMetrics;
     @Inject ObjectMapper json;
 
     private WebApplicationException error(int status, String message) {
@@ -182,6 +183,12 @@ public class AdminResource {
     @GET @Path("/metrics")
     public JsonNode metrics(@HeaderParam("Authorization") String auth) {
         require(auth); return state.metrics();
+    }
+
+    @GET @Path("/server")
+    public Response server(@HeaderParam("Authorization") String auth) {
+        require(auth);
+        return Response.ok(hostMetrics.snapshot()).header("Cache-Control", "no-store").build();
     }
 
     @GET @Path("/incidents")
