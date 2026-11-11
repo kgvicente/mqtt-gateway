@@ -21,7 +21,22 @@ El panel administrativo actual está en español.*
 
 ## Pruébalo en tu equipo
 
-Para una demostración MQTT real, usa **Docker Compose 2.20+ con contenedores Linux**
+### Inicio rápido (Contenedor precompilado)
+
+Ejecuta el gateway directamente sin clonar el repositorio ni compilar:
+
+```sh
+docker run -d --name mqtt-gateway -p 18085:8085 \
+  -e GATEWAY_ADMIN_AUTH_PROVIDER=internal \
+  -e GATEWAY_ADMIN_PASSWORD=local-demo-admin-2026 \
+  ghcr.io/kgvicente/mqtt-gateway:latest
+```
+
+Abre <http://127.0.0.1:18085/gateway/> e ingresa con `admin` / `local-demo-admin-2026`.
+
+### Demostración MQTT real con Docker Compose
+
+Para una demostración MQTT real con Mosquitto y pruebas automatizadas, usa **Docker Compose 2.20+ con contenedores Linux**
 en un equipo AMD64. Docker Desktop puede ejecutarlos en Windows. Esta opción no
 requiere JDK, Python ni clientes MQTT instalados en el host.
 
