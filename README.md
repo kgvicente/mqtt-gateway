@@ -2,6 +2,12 @@
 
 [English](README.md) | [Español](README.es.md)
 
+[![CI](https://github.com/kgvicente/mqtt-gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/kgvicente/mqtt-gateway/actions/workflows/ci.yml)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL%203.0-blue.svg)](LICENSE)
+[![Java 25](https://img.shields.io/badge/Java-25-orange.svg)](pom.xml)
+[![Quarkus 3.39](https://img.shields.io/badge/Quarkus-3.39-red.svg)](https://quarkus.io)
+[![Docker Ready](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](compose.yaml)
+
 **Route MQTT authentication and topic permissions through one HTTP gateway.**
 
 Connect EMQX, Mosquitto and VerneMQ to your HTTP backends without maintaining a

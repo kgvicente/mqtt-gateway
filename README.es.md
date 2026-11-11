@@ -2,6 +2,12 @@
 
 [English](README.md) | [Español](README.es.md)
 
+[![CI](https://github.com/kgvicente/mqtt-gateway/actions/workflows/ci.yml/badge.svg)](https://github.com/kgvicente/mqtt-gateway/actions/workflows/ci.yml)
+[![Licencia: AGPL-3.0](https://img.shields.io/badge/Licencia-AGPL%203.0-blue.svg)](LICENSE)
+[![Java 25](https://img.shields.io/badge/Java-25-orange.svg)](pom.xml)
+[![Quarkus 3.39](https://img.shields.io/badge/Quarkus-3.39-red.svg)](https://quarkus.io)
+[![Docker Listo](https://img.shields.io/badge/Docker-Listo-2496ED?logo=docker&logoColor=white)](compose.yaml)
+
 **Centraliza la autenticación MQTT y los permisos de tópicos en un gateway HTTP.**
 
 Conecta EMQX, Mosquitto y VerneMQ con tus backends HTTP sin mantener una política
