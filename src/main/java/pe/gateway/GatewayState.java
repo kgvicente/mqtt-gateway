@@ -28,6 +28,7 @@ public class GatewayState {
     private String currentDate;
     @Inject ObjectMapper json;
     @Inject GatewayConfig config;
+    @Inject HostMetricsService hostMetrics;
     private static final Logger LOG = Logger.getLogger(GatewayState.class);
     final HttpClient client = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1).connectTimeout(Duration.ofSeconds(2))
             .followRedirects(HttpClient.Redirect.NEVER).build();
@@ -376,6 +377,9 @@ public class GatewayState {
         snapshot.set("metrics", metrics());
         snapshot.set("incidents", incidents());
         snapshot.set("logs", logs());
+        if (hostMetrics != null) {
+            snapshot.set("server", hostMetrics.snapshot());
+        }
         return snapshot.toString();
     }
 
@@ -386,9 +390,19 @@ public class GatewayState {
     public Multi<String> streamEvents() {
         Multi<String> initial = Multi.createFrom().item(this::stateSnapshotJson);
         Multi<String> heartbeats = Multi.createFrom().ticks().every(Duration.ofSeconds(15)).map(tick -> "heartbeat");
+        Multi<String> hostStream = Multi.createFrom().ticks().every(Duration.ofSeconds(2)).map(tick -> {
+            try {
+                ObjectNode n = json.createObjectNode();
+                n.set("server", hostMetrics.snapshot());
+                return n.toString();
+            } catch (Exception e) {
+                return "{}";
+            }
+        });
         return Multi.createBy().merging().streams(
             initial,
             streamBus,
+            hostStream,
             heartbeats
         );
     }

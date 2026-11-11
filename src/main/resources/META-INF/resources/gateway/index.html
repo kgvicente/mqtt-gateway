@@ -344,6 +344,50 @@ select{font:inherit;background:var(--input-bg);color:var(--text);border:1px soli
 .section-heading{flex-wrap:wrap}.range-summary{font-size:12px;color:var(--muted);margin:10px 0}
 @media(max-width:720px){.probe-toast{right:16px;bottom:16px}.filters{align-items:stretch}.range-control{flex-wrap:wrap}.section-heading{gap:12px}.pagination{gap:8px}.pagination .page-info{flex-basis:100%}}
 @media(prefers-reduced-motion:reduce){.is-loading::before{animation:none}.probe-toast{transition:none}}
+
+/* ponytail: estilos de la vista validada, aislados para conservar las tarjetas de rutas. */
+#server-view{--host-cpu:var(--teal);--host-user:var(--red-light);--host-rx:#579fff;--host-tx:#2ed573;--host-read:var(--amber)}
+html[data-theme="light"] #server-view{--host-cpu:#008176;--host-user:#b22e28;--host-rx:#0068b3;--host-tx:#187d3c;--host-read:#855000}
+#server-view .server-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-bottom:18px}
+#server-view .card{padding:18px;display:flex;flex-direction:column;min-width:0;border-radius:8px}
+#server-view .card-title{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin:0 0 14px;display:flex;justify-content:space-between;gap:8px;align-items:center}
+#server-view .info-list{display:flex;flex-direction:column;gap:10px}
+#server-view .info-item{display:flex;flex-direction:column;gap:2px}
+#server-view .info-label{font-size:11px;color:var(--muted);text-transform:uppercase}
+#server-view .info-value{font:550 13px/1.6 ui-monospace,Consolas,monospace;overflow-wrap:anywhere}
+#server-view .gauges-container{display:flex;justify-content:space-around;align-items:center;gap:8px;flex:1;padding:8px 0}
+#server-view .gauge-box{display:flex;flex-direction:column;align-items:center;min-width:0;flex:1}
+#server-view .gauge-ring{position:relative;width:100%;max-width:105px;aspect-ratio:1}
+#server-view .gauge-svg{width:100%;height:100%;transform:rotate(-90deg)}
+#server-view .gauge-svg circle{fill:none;stroke-width:9}
+#server-view .gauge-bg{stroke:var(--panel-elevated)}
+#server-view .gauge-progress{stroke-linecap:round;transition:stroke-dashoffset .6s ease}
+#server-view .gauge-text{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.3}
+#server-view .gauge-val{font:700 13px ui-monospace,monospace}
+#server-view .gauge-lbl,#server-view .gauge-sub{font-size:11px;color:var(--muted)}
+#server-view .gauge-sub{margin-top:8px;text-align:center}
+#server-view .net-stats-box{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px}
+#server-view .net-metric{background:var(--panel-elevated);border:1px solid var(--border-subtle);border-radius:6px;padding:12px;min-width:0}
+#server-view .net-metric small{font-size:11px;color:var(--muted);display:block;margin-bottom:4px}
+#server-view .net-metric strong{font:700 clamp(16px,1.6vw,22px) ui-monospace,monospace}
+#server-view .net-metric .sub{font-size:11px;color:var(--muted);margin-top:4px;overflow-wrap:anywhere}
+#server-view .net-footer{margin-top:14px;padding-top:12px;border-top:1px solid var(--border-subtle);font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+#server-view .net-footer span{display:block;margin-top:4px}
+#server-view .chart-card{height:280px;min-height:280px;max-height:280px;overflow:hidden;box-sizing:border-box}
+#server-view .chart-header{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;flex:0 0 auto;min-width:0;flex-wrap:nowrap}
+#server-view .chart-stat{font:700 22px ui-monospace,monospace;color:var(--host-cpu);white-space:nowrap;flex-shrink:0}
+#server-view .chart-stat.pair{font:600 12.5px ui-monospace,monospace;display:flex;gap:8px;white-space:nowrap;flex-shrink:0}
+#server-view .chart-legend{font-size:11px;color:var(--muted);display:flex;gap:8px;white-space:nowrap;flex-shrink:0}
+#server-view .legend-item{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+#server-view .legend-dot{width:7px;height:7px;border-radius:2px;display:inline-block}
+#server-view .canvas-wrap{position:relative;width:100%;height:180px;min-height:180px;max-height:180px;flex:0 0 180px;overflow:hidden}
+#server-view .canvas-wrap canvas{width:100%!important;height:180px!important;max-height:180px!important;display:block}
+.host-status{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 16px;font-size:12px;color:var(--muted)}
+#host-error{margin-bottom:16px}
+@media(max-width:1150px){#server-view .server-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){#server-view .server-grid{grid-template-columns:minmax(0,1fr)}#server-view .net-metric strong{font-size:22px}}
+@media(prefers-reduced-motion:reduce){#server-view .gauge-progress{transition:none}}
+
 </style>
 </head>
 <body>
@@ -515,12 +559,19 @@ select{font:inherit;background:var(--input-bg);color:var(--text);border:1px soli
 
 
     <nav id="main-nav" aria-label="Secciones de administración">
-      <button class="active" data-tab="backends" aria-current="page">Backends <span class="count" id="backend-count">0</span></button>
+      <button class="active" data-tab="server-view" aria-current="page">Servidor (Host)</button>
+      <button data-tab="backends">Backends <span class="count" id="backend-count">0</span></button>
       <button data-tab="incidents">Incidentes <span class="count" id="incident-count">0</span></button>
       <button data-tab="logs">Auditoría <span class="count" id="log-count">0</span></button>
     </nav>
 
-    <section id="backends">
+<section id="server-view" aria-label="Métricas del servidor">
+<div class="host-status"><span id="host-source">Esperando la primera muestra del servidor…</span><span id="host-updated">Actualización cada 2 segundos · Historial en memoria</span></div>
+<div class="message" id="host-error" role="status" hidden></div>
+<div class="server-grid">
+<article class="card"><h2 class="card-title">Información del Servidor</h2><div class="info-list"><div class="info-item"><span class="info-label">Tiempo de actividad</span><span class="info-value" id="host-uptime">—</span></div><div class="info-item"><span class="info-label">Carga media (1, 5 y 15 min)</span><span class="info-value" id="host-load">—</span></div><div class="info-item"><span class="info-label">Sistema operativo / Kernel</span><span class="info-value" id="host-os">—</span></div><div class="info-item"><span class="info-label">Procesador</span><span class="info-value" id="host-processor">—</span></div></div></article><article class="card"><h2 class="card-title">Memoria y Almacenamiento</h2><div class="gauges-container"><div class="gauge-box"><div class="gauge-ring" id="host-memory-ring" role="img" aria-label="Memoria: sin datos"><svg class="gauge-svg" viewBox="0 0 100 100" aria-hidden="true"><circle class="gauge-bg" cx="50" cy="50" r="40"/><circle id="host-memory-progress" class="gauge-progress" cx="50" cy="50" r="40" style="stroke:var(--host-cpu)" stroke-dasharray="251.327" stroke-dashoffset="251.327"/></svg><div class="gauge-text"><span class="gauge-val" id="host-memory-used">—</span><span class="gauge-lbl">Memoria</span></div></div><span class="gauge-sub" id="host-memory-total">—</span></div><div class="gauge-box"><div class="gauge-ring" id="host-swap-ring" role="img" aria-label="Swap: sin datos"><svg class="gauge-svg" viewBox="0 0 100 100" aria-hidden="true"><circle class="gauge-bg" cx="50" cy="50" r="40"/><circle id="host-swap-progress" class="gauge-progress" cx="50" cy="50" r="40" style="stroke:var(--host-user)" stroke-dasharray="251.327" stroke-dashoffset="251.327"/></svg><div class="gauge-text"><span class="gauge-val" id="host-swap-used">—</span><span class="gauge-lbl">Swap</span></div></div><span class="gauge-sub" id="host-swap-total">—</span></div><div class="gauge-box"><div class="gauge-ring" id="host-disk-ring" role="img" aria-label="Disco /: sin datos"><svg class="gauge-svg" viewBox="0 0 100 100" aria-hidden="true"><circle class="gauge-bg" cx="50" cy="50" r="40"/><circle id="host-disk-progress" class="gauge-progress" cx="50" cy="50" r="40" style="stroke:var(--host-tx)" stroke-dasharray="251.327" stroke-dashoffset="251.327"/></svg><div class="gauge-text"><span class="gauge-val" id="host-disk-used">—</span><span class="gauge-lbl">Disco /</span></div></div><span class="gauge-sub" id="host-disk-total">—</span></div></div></article><article class="card"><h2 class="card-title">Estadísticas de Red Acumuladas</h2><div class="net-stats-box"><div class="net-metric"><small>Total recibido (Rx)</small><strong id="host-rx-total">—</strong><div class="sub" id="host-rx-packets">—</div></div><div class="net-metric"><small>Total enviado (Tx)</small><strong id="host-tx-total">—</strong><div class="sub" id="host-tx-packets">—</div></div></div><div class="net-footer"><span id="host-interfaces">Interfaces: —</span><span id="host-errors">Descartes / Errores: —</span><span>Acumulados del kernel, sin interfaz de bucle local.</span></div></article></div><div class="server-grid"><article class="card chart-card"><h2 class="card-title">Uso de Procesador (CPU)</h2><div class="chart-header"><div class="chart-stat" id="host-cpu-value">—</div><div class="chart-legend"><span class="legend-item"><span class="legend-dot" style="background:var(--host-cpu)"></span>Total</span><span class="legend-item"><span class="legend-dot" style="background:var(--host-user)"></span>Usuario</span></div></div><div class="canvas-wrap"><canvas id="host-cpu-chart" role="img" aria-label="Historial de uso de procesador (cpu)"></canvas></div></article><article class="card chart-card"><h2 class="card-title">Ancho de Banda de Red</h2><div class="chart-header"><div class="chart-stat pair"><span id="host-net-first" style="color:var(--host-rx)">↓ — MiB/s</span><span id="host-net-second" style="color:var(--host-tx)">↑ — MiB/s</span></div><div class="chart-legend"><span class="legend-item"><span class="legend-dot" style="background:var(--host-rx)"></span>Rx</span><span class="legend-item"><span class="legend-dot" style="background:var(--host-tx)"></span>Tx</span></div></div><div class="canvas-wrap"><canvas id="host-net-chart" role="img" aria-label="Historial de ancho de banda de red"></canvas></div></article><article class="card chart-card"><h2 class="card-title">Operaciones de Disco</h2><div class="chart-header"><div class="chart-stat pair"><span id="host-io-first" style="color:var(--host-user)">W: — /s</span><span id="host-io-second" style="color:var(--host-read)">R: — /s</span></div><div class="chart-legend"><span class="legend-item"><span class="legend-dot" style="background:var(--host-user)"></span>W</span><span class="legend-item"><span class="legend-dot" style="background:var(--host-read)"></span>R</span></div></div><div class="canvas-wrap"><canvas id="host-io-chart" role="img" aria-label="Historial de operaciones de disco"></canvas></div></article></div></section>
+
+    <section id="backends" hidden>
       <div class="summary">
         <div><small>Backends activos</small><strong id="online">–</strong></div>
         <div><small>Latencia media global</small><strong id="average">–</strong></div>
@@ -763,6 +814,104 @@ for (const mode of ['cards','table']) $('#view-' + mode).onclick = () => {
 };
 let durationChart = null, sparkUptimeChart = null, sparkLatChart = null;
 
+
+// ponytail: una ventana acotada en memoria; no se escribe historial en Storage.
+let hostData = null, hostBusy = false, hostGeneration = 0;
+const hostSamples = [], hostCharts = {};
+const hostNumber = (value, digits=1) => Number.isFinite(value) ? value.toLocaleString('es-PE',{maximumFractionDigits:digits}) : '—';
+function hostBytes(value) {
+  if (!Number.isFinite(value)) return '—';
+  const units=['B','KiB','MiB','GiB','TiB'];
+  let i=0; while (value >= 1024 && i < units.length-1) { value/=1024; i++; }
+  return hostNumber(value,2)+' '+units[i];
+}
+function resetHost() {
+  hostGeneration++; hostData=null; hostSamples.length=0;
+  for (const key of Object.keys(hostCharts)) { hostCharts[key].destroy(); delete hostCharts[key]; }
+  $('#server-view').querySelectorAll('[id^="host-"]').forEach(element => {
+    if (element.matches('span,strong,.gauge-val,.gauge-sub,.chart-stat,.sub')) element.textContent='—';
+  });
+  $('#host-source').textContent='Esperando la primera muestra del servidor…';
+  $('#host-error').hidden=true;
+}
+function applyHostSnapshot(sample) {
+  if (!sample || !sample.time) return;
+  hostData = sample;
+  if (hostSamples.at(-1)?.time !== sample.time) {
+    hostSamples.push(sample);
+    if (hostSamples.length > 180) hostSamples.shift();
+  }
+  $('#host-error').hidden = true;
+  if (loggedIn && !$('#server-view').hidden && !activeDetailId) {
+    renderHost();
+  }
+}
+async function refreshHost() {
+  if (!loggedIn || hostBusy || document.hidden || $('#server-view').hidden || activeDetailId) return;
+  hostBusy=true;
+  const generation=hostGeneration;
+  try {
+    const sample=await api('/server');
+    if (!loggedIn || generation !== hostGeneration) return;
+    applyHostSnapshot(sample);
+  } catch (error) {
+    $('#host-error').textContent='No se pudo actualizar el servidor: '+error.message;
+    $('#host-error').hidden=false;
+    $('#host-updated').textContent='Sin actualización. Se reintentará automáticamente.';
+  } finally { hostBusy=false; }
+}
+function renderHost() {
+  if (!hostData || $('#server-view').hidden) return;
+  const h=hostData, text=(id,value)=>$('#host-'+id).textContent=value;
+  text('source',h.source==='linux' ? 'Datos del host Linux · '+(h.waitingForSample ? 'Esperando segunda muestra para las tasas' : h.unavailable.length ? 'Lectura parcial' : 'En vivo') : 'Desarrollo local · Datos parciales del sistema');
+  const age=Date.parse(h.time);
+  text('updated','Muestra: '+new Date(age).toLocaleTimeString('es-PE')+' · Cada 2 s · Últimas '+hostSamples.length+' muestras');
+  $('#host-source').title=h.unavailable.join('; ');
+  const minutes=Math.floor(h.uptimeSeconds/60);
+  text('uptime',Number.isFinite(minutes) ? Math.floor(minutes/1440)+' días '+Math.floor(minutes%1440/60)+' h '+minutes%60+' min' : 'No disponible');
+  text('load',h.load ? h.load.map(x=>hostNumber(x,2)).join(' / ') : 'No disponible');
+  text('os',[h.os,h.kernel,h.architecture].filter(Boolean).join(' · '));
+  text('processor',(h.processor || 'No disponible')+' · '+hostNumber(h.cores,0)+' núcleos');
+  for (const id of ['memory','swap','disk']) {
+    const value=h[id], known=Number.isFinite(value.total), percent=value.total>0 ? Math.min(100,100*value.used/value.total) : 0;
+    text(id+'-used',known ? hostBytes(value.used) : '—');
+    text(id+'-total',known ? (value.total===0 ? 'Sin swap' : hostBytes(value.total)+' total') : 'No disponible');
+    $('#host-'+id+'-progress').setAttribute('stroke-dashoffset',251.327*(1-percent/100));
+    const label={memory:'Memoria',swap:'Swap',disk:'Disco'}[id];
+    $('#host-'+id+'-ring').setAttribute('aria-label',label+': '+(known ? hostNumber(percent)+' % usado' : 'sin datos'));
+  }
+  const n=h.network, io=h.io;
+  text('rx-total',hostBytes(n.rxBytes)); text('tx-total',hostBytes(n.txBytes));
+  text('rx-packets',hostNumber(n.rxPackets,0)+' paquetes'); text('tx-packets',hostNumber(n.txPackets,0)+' paquetes');
+  text('interfaces','Interfaces: '+(n.interfaces?.join(', ') || 'No disponible'));
+  text('errors','Descartes / Errores: '+hostNumber(n.drops,0)+' / '+hostNumber(n.errors,0));
+  text('cpu-value',hostNumber(h.cpu.totalPercent,2)+' %');
+  text('net-first','↓ '+hostNumber(n.rxMiBs,2)+' MiB/s'); text('net-second','↑ '+hostNumber(n.txMiBs,2)+' MiB/s');
+  text('io-first','W: '+hostNumber(io.writesPerSecond,0)+' /s'); text('io-second','R: '+hostNumber(io.readsPerSecond,0)+' /s');
+  const style=getComputedStyle($('#server-view')), color=name=>style.getPropertyValue(name).trim();
+  const muted=style.getPropertyValue('--muted').trim(), grid=style.getPropertyValue('--chart-grid').trim();
+  const definitions={
+    cpu:[['Total','--host-cpu',x=>x.cpu.totalPercent],['Usuario','--host-user',x=>x.cpu.userPercent]],
+    net:[['Rx','--host-rx',x=>x.network.rxMiBs],['Tx','--host-tx',x=>x.network.txMiBs]],
+    io:[['W','--host-user',x=>x.io.writesPerSecond],['R','--host-read',x=>x.io.readsPerSecond]]
+  };
+  for (const [id,defs] of Object.entries(definitions)) {
+    const datasets=defs.map(([label,c,get],i)=>({label,data:hostSamples.map(x=>get(x) ?? null),borderColor:color(c),backgroundColor:color(c)+'22',fill:id==='net'||i===0,tension:.25,borderWidth:2,borderDash:id==='cpu'&&i===1?[3,3]:[],pointRadius:0,spanGaps:false}));
+    const data={labels:hostSamples.map(x=>new Date(x.time).toLocaleTimeString('es-PE')),datasets};
+    if (hostCharts[id]) { hostCharts[id].data=data; hostCharts[id].options.scales.x.ticks.color=muted; hostCharts[id].options.scales.y.ticks.color=muted; hostCharts[id].options.scales.x.grid.color=grid; hostCharts[id].options.scales.y.grid.color=grid; hostCharts[id].update('none'); }
+    else hostCharts[id]=new Chart($('#host-'+id+'-chart'), {
+      type:'line',data,
+      options:{
+        responsive:true,maintainAspectRatio:false,animation:false,plugins:{legend:{display:false}},
+        scales:{
+          x:{grid:{color:grid},ticks:{color:muted,maxTicksLimit:5,font:{size:10}}},
+          y:{min:0,...(id==='cpu'?{suggestedMax:10}:{}),grid:{color:grid},ticks:{color:muted,font:{size:10},callback:value=>hostNumber(value)+(id==='cpu'?' %':id==='net'?' MiB/s':' /s')}}
+        }
+      }
+    });
+  }
+}
+
 /* Theme Switcher */
 let currentTheme = localStorage.getItem('gateway_theme') || 'system';
 function applyTheme(theme) {
@@ -776,6 +925,7 @@ function applyTheme(theme) {
     b.classList.toggle('active', b.dataset.val === theme);
   }
   if (activeDetailId && typeof renderDetail === 'function') renderDetail();
+  renderHost();
 }
 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
   if (currentTheme === 'system') applyTheme('system');
@@ -820,6 +970,7 @@ async function api(path, options = {}) {
 }
 
 function showLogin() {
+  resetHost();
   document.documentElement.classList.remove('authenticated');
   loggedIn = false;
   token = '';
@@ -851,6 +1002,10 @@ async function enter(candidate) {
   loggedIn = true;
   $('#password').value = '';
   await refresh();
+  if (document.querySelector('#main-nav button.active')?.dataset.tab === 'server-view') {
+    renderHost();
+    if (!hostData) refreshHost();
+  }
 }
 
 function applySnapshot(data) {
@@ -978,8 +1133,8 @@ function closeDetail() {
   }
   $('#backend-detail').hidden = true;
   $('#main-view-container').hidden = false;
-  const activeTab = document.querySelector('#main-nav button.active')?.dataset.tab || 'backends';
-  for (const id of ['backends', 'incidents', 'logs']) $('#' + id).hidden = id !== activeTab;
+  const activeTab = document.querySelector('#main-nav button.active')?.dataset.tab || 'server-view';
+  for (const id of ['backends', 'incidents', 'logs', 'server-view']) $('#' + id).hidden = id !== activeTab;
 }
 
 $('#back-btn').onclick = closeDetail;
@@ -1348,7 +1503,7 @@ function openEditor(route = null) {
 
 $('#register').onclick = () => openEditor();
 $('#close-dialog').onclick = $('#cancel-dialog').onclick = () => $('#route-dialog').close();
-$('#refresh').onclick = refresh;
+$('#refresh').onclick = () => { refresh(); if (!$('#server-view').hidden) refreshHost(); };
 $('#logout').onclick = showLogin;
 
 for (const button of document.querySelectorAll('#main-nav [data-tab]')) {
@@ -1358,7 +1513,8 @@ for (const button of document.querySelectorAll('#main-nav [data-tab]')) {
       if (el === button) el.setAttribute('aria-current', 'page');
       else el.removeAttribute('aria-current');
     }
-    for (const id of ['backends', 'incidents', 'logs']) $('#' + id).hidden = id !== button.dataset.tab;
+    for (const id of ['backends', 'incidents', 'logs', 'server-view']) $('#' + id).hidden = id !== button.dataset.tab;
+    if (button.dataset.tab === 'server-view') { renderHost(); if (!hostData) refreshHost(); }
   };
 }
 
@@ -1515,8 +1671,13 @@ function connectStream() {
       }
       try {
         const payload = JSON.parse(event.data);
-        if (payload && (payload.routes || payload.metrics)) {
-          applySnapshot(payload);
+        if (payload) {
+          if (payload.routes || payload.metrics) {
+            applySnapshot(payload);
+          }
+          if (payload.server) {
+            applyHostSnapshot(payload.server);
+          }
         }
       } catch (_) {}
     };
@@ -1530,7 +1691,12 @@ function connectStream() {
 
 connectStream();
 
-document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    refresh();
+    if (!$('#server-view').hidden && !hostData) refreshHost();
+  }
+});
 </script>
 </body>
 </html>
