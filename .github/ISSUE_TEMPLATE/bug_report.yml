@@ -1,0 +1,82 @@
+name: Bug Report
+description: Create a report to help us improve MQTT Gateway
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting an issue! Please verify that you are not disclosing passwords, private tokens, or sensitive network credentials before submitting.
+  - type: dropdown
+    id: component
+    attributes:
+      label: Affected Component / Adapter
+      description: Which part of MQTT Gateway is experiencing the issue?
+      options:
+        - EMQX Adapter (/emqx/auth, /emqx/acl)
+        - Mosquitto Adapter (/mosquitto/auth, /mosquitto/acl)
+        - VerneMQ Adapter (/vernemq/auth, /vernemq/acl)
+        - Generic HTTP Adapter (/generic/auth, /generic/acl)
+        - Admin Web UI (/gateway/)
+        - State & Route Persistence
+        - Health Probes / Incident History
+        - Build / Docker / Compose
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: MQTT Gateway Version
+      description: What version or commit hash are you using (e.g. 0.1.0, main branch commit)?
+      placeholder: "e.g. 0.1.0 or commit abc1234"
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment & Runtime
+      description: Operating System, Java version (JDK 25), and Docker/Compose version if applicable.
+      placeholder: "e.g. Ubuntu 24.04, OpenJDK 25, Docker Compose 2.29"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Problem Description
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps To Reproduce
+      description: Step-by-step instructions or minimal curl/HTTP payloads to reproduce the behavior.
+      placeholder: |
+        1. Start gateway with ...
+        2. Send POST to /api/v1/gateway/...
+        3. Observe response code or state
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs and Configuration
+      description: Paste relevant logs or route configurations. Redact any sensitive passwords or tokens!
+      render: shell
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have searched existing issues and confirmed this is not a duplicate.
+          required: true
+        - label: I have verified that no private credentials, tokens, or sensitive data are included.
+          required: true
