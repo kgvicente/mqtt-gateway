@@ -33,9 +33,13 @@ routes = request("/api/admin/routes", token=token)
 for route in routes:
     if route["id"] in ("core-service", "device-gw", "telemetry") and route["enabled"]:
         request("/api/admin/routes/" + route["id"], "PUT", dict(route, enabled=False), token)
+# ponytail: pasar la clave del backend de demo directamente con write-only apiKey si existe variable de entorno o omitir.
+api_key = os.environ.get("DEMO_BACKEND_API_KEY", "")
 demo = dict(name="Local demo", enabled=True, authPrefixes=["demo_"], aclPrefixes=["demo/"],
             authUrl="http://backend:19090/auth", aclUrl="http://backend:19090/acl",
-            healthUrl="http://backend:19090/health", apiKey="")
+            healthUrl="http://backend:19090/health")
+if api_key:
+    demo["apiKey"] = api_key
 existing = next((route for route in routes if route["name"] == "Local demo"), None)
 request("/api/admin/routes" + ("/" + existing["id"] if existing else ""),
         "PUT" if existing else "POST", demo, token)

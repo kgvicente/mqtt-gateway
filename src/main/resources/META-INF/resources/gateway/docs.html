@@ -174,6 +174,7 @@
     <a href="#introduccion" class="active">Introducción</a>
     <a href="#adaptadores">Adaptadores MQTT</a>
     <a href="#admin">Acceso al panel</a>
+    <a href="#notificaciones">Notificaciones por Telegram</a>
     <a href="#auth">Autenticación (/auth)</a>
     <a href="#acl">Autorización (/acl)</a>
     <a href="#health">Sondeo de salud (/health)</a>
@@ -206,7 +207,11 @@
         </a>
       </div>
       <p>MQTT Gateway actúa como un proxy inverso de alta velocidad y baja latencia que desacopla EMQX, Mosquitto, VerneMQ y otros brókers de los sistemas y microservicios de backend (IoT Core Service, Device Gateway, Telemetry Service y servicios futuros). Cuando un cliente MQTT se conecta o intenta publicar/suscribirse, el gateway enruta la decisión al backend correspondiente.</p>
-      <p>Esta documentación es pública y accesible en <code>/gateway/docs</code> sin necesidad de credenciales ni token administrativo.</p>
+      <p>Esta documentación es pública y accesible en <code>/gateway/docs</code> sin necesidad de credenciales ni token administrativo. Documentos complementarios: <a href="/gateway/telegram-docker.es.md">Telegram en Docker Compose</a> y <a href="/gateway/three-phases.es.md">Las tres fases del gateway</a>.</p>
+
+      <div class="callout">
+        <p><strong>Única fuente de verdad del contrato:</strong> El código fuente del repositorio (<a href="https://github.com/kgvicente/mqtt-gateway/blob/main/src/main/java/pe/gateway/AdminResource.java">AdminResource.java</a>, <a href="https://github.com/kgvicente/mqtt-gateway/blob/main/src/main/java/pe/gateway/GatewayState.java">GatewayState.java</a>, <a href="https://github.com/kgvicente/mqtt-gateway/blob/main/src/main/java/pe/gateway/StorageService.java">StorageService.java</a>, <a href="https://github.com/kgvicente/mqtt-gateway/blob/main/src/main/java/pe/gateway/GatewayConfig.java">GatewayConfig.java</a> y <a href="https://github.com/kgvicente/mqtt-gateway/blob/main/src/main/resources/application.yml">application.yml</a>) constituye la única autoridad técnica y contrato normativo del sistema. Los documentos de planes y reportes de auditoría en el repositorio representan antecedentes históricos del proceso de diseño e implementación y no poseen autoridad normativa frente al código fuente.</p>
+      </div>
 
 
 
@@ -279,7 +284,157 @@
       &quot;qos&quot;: 1
     }
   ]
-}</code></pre></div><p><code>client_id</code> se copia a <code>clientid</code>; el hook de publicación añade <code>action=publish</code> y cada entrada de <code>topics</code> añade <code>action=subscribe</code>. Cada tópico tiene resolución, métrica y auditoría propias. Todos deben devolver allow: un deny deniega el conjunto; sin deny, un ignore produce next. Una lista vacía o inválida se deniega. Las respuestas usan HTTP 200: <code>{&quot;result&quot;:&quot;ok&quot;}</code> para allow, <code>{&quot;result&quot;:{&quot;error&quot;:&quot;not_allowed&quot;}}</code> para deny y <code>{&quot;result&quot;:&quot;next&quot;}</code> para ignore. No se devuelven modificadores de tópicos ni privilegios de superusuario específicos de VerneMQ.</p><h3>Contrato saliente compartido</h3><p>Los adaptadores traducen entrada y respuesta; los backends HTTP continúan recibiendo el contrato JSON existente (<code>clientid</code>, <code>username</code>, <code>password</code> para auth; <code>clientid</code>, <code>username</code>, <code>topic</code>, <code>action</code> para ACL). Se conservan campos adicionales, incluyendo los originales del bróker. Los backends responden con HTTP 2xx y <code>result=allow|deny|ignore</code>. La selección sigue siendo por prefijo de clientid para auth y de topic para ACL. JSON inválido, timeout y fallo del backend producen deny. Los privilegios de superusuario siguen siendo exclusivos del formato EMQX; en los otros brókers la autorización ACL se evalúa por separado.</p><p>Referencias del protocolo: <a href="https://github.com/iegomez/mosquitto-go-auth#http">mosquitto-go-auth</a> y <a href="https://docs.vernemq.com/plugin-development/webhookplugins">webhooks de VerneMQ</a>.</p></section><section id="admin"><h2>Acceso autónomo al panel</h2><p>La configuración está bajo <code>gateway.admin</code> en application.yml:</p><div class="table-container"><table><thead><tr><th scope="col">Propiedad en gateway.admin</th><th scope="col">Variable de entorno</th><th scope="col">Valor por defecto</th></tr></thead><tbody><tr><td>auth-provider</td><td>GATEWAY_ADMIN_AUTH_PROVIDER</td><td>internal</td></tr><tr><td>username</td><td>GATEWAY_ADMIN_USERNAME</td><td>admin</td></tr><tr><td>password</td><td>GATEWAY_ADMIN_PASSWORD</td><td>admin-secret-2026$</td></tr></tbody></table></div><p>En modo <code>internal</code>, POST <code>/api/admin/auth/login</code> recibe <code>{&quot;username&quot;:&quot;admin&quot;,&quot;password&quot;:&quot;&lt;contraseña configurada&gt;&quot;}</code> y devuelve <code>{&quot;token&quot;:&quot;&lt;UUID aleatorio&gt;&quot;,&quot;username&quot;:&quot;admin&quot;}</code>. Credenciales incorrectas: HTTP 401; campos vacíos: HTTP 400. El token se conserva únicamente en memoria y caduca ocho horas después de su emisión, sin renovación por actividad. Se pueden emitir varias sesiones. Reiniciar invalida todas las sesiones. Las entradas caducadas se eliminan al verificarlas y en cada login exitoso.</p><p>Todas las operaciones administrativas protegidas y GET/POST <code>/api/admin/auth/verify</code> requieren <code>Authorization: Bearer &lt;token&gt;</code>. La verificación correcta devuelve <code>{&quot;valid&quot;:true}</code>; un token ausente, desconocido o caducado devuelve HTTP 401. El panel sigue funcionando si EMQX está detenido. Configurar GATEWAY_ADMIN_PASSWORD en el entorno del servicio para sustituir la contraseña inicial.</p><p>En modo <code>emqx</code>, login delega en POST <code>/api/v5/login</code> y cada verificación delega en GET <code>/api/v5/users</code> del Dashboard indicado por GATEWAY_EMQX_URL. Los tokens internos no sirven en modo EMQX, ni los de EMQX en modo interno. No hay cambio automático de proveedor ante un fallo de EMQX. La integración existente por fragmento, almacenamiento e iframe continúa siempre que el token corresponda al proveedor configurado. Salir del panel elimina su sesión del navegador; el token interno sigue vigente hasta caducar o reiniciar. No se añade un endpoint de revocación. </p></section>
+}</code></pre></div><p><code>client_id</code> se copia a <code>clientid</code>; el hook de publicación añade <code>action=publish</code> y cada entrada de <code>topics</code> añade <code>action=subscribe</code>. Cada tópico tiene resolución, métrica y auditoría propias. Todos deben devolver allow: un deny deniega el conjunto; sin deny, un ignore produce next. Una lista vacía o inválida se deniega. Las respuestas usan HTTP 200: <code>{&quot;result&quot;:&quot;ok&quot;}</code> para allow, <code>{&quot;result&quot;:{&quot;error&quot;:&quot;not_allowed&quot;}}</code> para deny y <code>{&quot;result&quot;:&quot;next&quot;}</code> para ignore. No se devuelven modificadores de tópicos ni privilegios de superusuario específicos de VerneMQ.</p><h3>Contrato saliente compartido</h3><p>Los adaptadores traducen entrada y respuesta; los backends HTTP continúan recibiendo el contrato JSON existente (<code>clientid</code>, <code>username</code>, <code>password</code> para auth; <code>clientid</code>, <code>username</code>, <code>topic</code>, <code>action</code> para ACL). Se conservan campos adicionales, incluyendo los originales del bróker. Los backends responden con HTTP 2xx y <code>result=allow|deny|ignore</code>. La selección sigue siendo por prefijo de clientid para auth y de topic para ACL. JSON inválido, timeout y fallo del backend producen deny. Los privilegios de superusuario siguen siendo exclusivos del formato EMQX; en los otros brókers la autorización ACL se evalúa por separado.</p><p>Referencias del protocolo: <a href="https://github.com/iegomez/mosquitto-go-auth#http">mosquitto-go-auth</a> y <a href="https://docs.vernemq.com/plugin-development/webhookplugins">webhooks de VerneMQ</a>.</p></section><section id="admin"><h2>Acceso autónomo al panel y persistencia</h2><p>La configuración administrativa está bajo <code>gateway.admin</code> en application.yml:</p><div class="table-container"><table><thead><tr><th scope="col">Propiedad en gateway.admin</th><th scope="col">Variable de entorno</th><th scope="col">Valor por defecto</th></tr></thead><tbody><tr><td>auth-provider</td><td>GATEWAY_ADMIN_AUTH_PROVIDER</td><td>internal</td></tr><tr><td>username</td><td>GATEWAY_ADMIN_USERNAME</td><td>admin</td></tr><tr><td>password</td><td>GATEWAY_ADMIN_PASSWORD</td><td>admin-secret-2026$</td></tr></tbody></table></div><p>En modo <code>internal</code>, POST <code>/api/admin/auth/login</code> recibe <code>{&quot;username&quot;:&quot;admin&quot;,&quot;password&quot;:&quot;&lt;contraseña configurada&gt;&quot;}</code> y devuelve <code>{&quot;token&quot;:&quot;&lt;UUID aleatorio&gt;&quot;,&quot;username&quot;:&quot;admin&quot;}</code>. Credenciales incorrectas: HTTP 401; campos vacíos: HTTP 400. El token se conserva únicamente en memoria y caduca ocho horas después de su emisión, sin renovación por actividad. Se pueden emitir varias sesiones. Reiniciar invalida todas las sesiones. Las entradas caducadas se eliminan al verificarlas y en cada login exitoso.</p><p>Todas las operaciones administrativas protegidas y GET/POST <code>/api/admin/auth/verify</code> requieren <code>Authorization: Bearer &lt;token&gt;</code>. La verificación correcta devuelve <code>{&quot;valid&quot;:true}</code>; un token ausente, desconocido o caducado devuelve HTTP 401. El panel sigue funcionando si EMQX está detenido. Configurar GATEWAY_ADMIN_PASSWORD en el entorno del servicio para sustituir la contraseña inicial.</p><p>En modo <code>emqx</code>, login delega en POST <code>/api/v5/login</code> y cada verificación delega en GET <code>/api/v5/users</code> del Dashboard indicado por GATEWAY_EMQX_URL. Los tokens internos no sirven en modo EMQX, ni los de EMQX en modo interno. No hay cambio automático de proveedor ante un fallo de EMQX. La integración existente por fragmento, almacenamiento e iframe continúa siempre que el token corresponda al proveedor configurado. Salir del panel elimina su sesión del navegador; el token interno sigue vigente hasta caducar o reiniciar. No se añade un endpoint de revocación.</p><h3>Almacenamiento SQLite, Secretos Cifrados y Respaldos</h3><p>El estado operativo del gateway (rutas registradas, ajustes, métricas agregadas e incidentes) se persiste en una base de datos SQLite embebida bajo <code>data/gateway.db</code> (en contenedor Docker: <code>/app/data/gateway.db</code>), operando en modo WAL (Write-Ahead Logging) con <code>foreign_keys=ON</code>, <code>busy_timeout=5000</code> y <code>synchronous=FULL</code>. Las migraciones de esquema son transaccionales y versionadas con sumas de verificación SHA-256 en la tabla <code>schema_migrations</code>. Si existen archivos JSON legados (<code>routes.json</code>, <code>incidents.json</code>, <code>daily-state.json</code>), se importan automáticamente de forma atómica en una única transacción.</p><p><strong>Secretos administrados y cifrado en SQLite:</strong> La base de datos almacena los secretos de backend y el token de Telegram cifrados con AES-256-GCM mediante JCA estándar (con nonces de 12 bytes y AAD por propietario). La clave maestra de infraestructura <code>GATEWAY_MASTER_KEY</code> (Base64 estándar de 32 bytes) se suministra en el arranque; nunca se almacena en SQLite. En las rutas y ajustes, los campos <code>apiKey</code> y <code>telegram.botToken</code> son <em>write-only</em> (omitido conserva, cadena vacía elimina, cadena no vacía establece). <code>apiKey</code> admite hasta 4096 caracteres ASCII imprimibles sin caracteres de control (rango 0x20 a 0x7E, sin CRLF); <code>telegram.botToken</code> admite exclusivamente caracteres seguros <code>[A-Za-z0-9:_-]</code>. Las respuestas <code>GET</code> exponen únicamente las banderas de existencia <code>hasApiKey</code> y <code>tokenConfigured</code>.</p><p><strong>Copias de seguridad y restauración:</strong> Cualquier procedimiento de respaldo o restauración debe ejecutarse con el servicio detenido para garantizar la consistencia de los archivos WAL. Para evitar corrupción por residuos de archivos WAL/SHM ajenos, nunca descomprima encima de un directorio existente: mueva el directorio actual a un respaldo fechado de seguridad, cree un directorio vacío con modo 700 y extraiga el respaldo allí (el gateway vuelve al estado del respaldo y los datos posteriores quedan resguardados en la copia previa fechada).</p><h3>Ajustes globales y monitoreo configurable</h3><p>La configuración global de sondeo de disponibilidad se administra mediante <code>GET</code> y <code>PUT /api/admin/settings</code> recibiendo un objeto <code>monitoring</code> con cuatro parámetros:</p><ul><li><code>probeIntervalSeconds</code>: Frecuencia de sondeo en segundos (1 a 86 400 s). El siguiente sondeo comienza cuando termina el anterior y transcurre este intervalo.</li><li><code>probeTimeoutMs</code>: Tiempo máximo de espera por sondeo (100 a 60 000 ms). Debe ser menor al intervalo de sondeo.</li><li><code>failureThreshold</code>: Sondeos fallidos consecutivos necesarios para abrir un incidente (1 a 100).</li><li><code>recoveryThreshold</code>: Sondeos exitosos consecutivos necesarios para cerrar el incidente y marcar operativo (1 a 100).</li></ul><p><strong>Herencia y valores efectivos:</strong> Cada ruta puede sobreescribir cualquiera de estos cuatro parámetros mediante su campo <code>monitoring</code>. Los campos omitidos o con valor <code>null</code> heredan automáticamente el valor global, y la API devuelve siempre <code>effectiveMonitoring</code> con los valores computados. Los cambios se guardan y aplican de forma inmediata sin necesidad de reiniciar el servicio.</p><h3>Endpoints de la API Administrativa</h3><p>Todas las rutas administrativas protegidas bajo <code>/api/admin/</code> requieren la cabecera <code>Authorization: Bearer &lt;token&gt;</code> obtenida en el inicio de sesión (salvo <code>/login</code>):</p><div class="table-container"><table><thead><tr><th scope="col">Método</th><th scope="col">Endpoint</th><th scope="col">Descripción y Contrato</th></tr></thead><tbody><tr><td><code>POST</code></td><td><code>/api/admin/auth/login</code></td><td>Iniciar sesión administrativa interna con usuario y contraseña. Emite token Bearer válido por 8 horas.</td></tr><tr><td><code>GET</code>, <code>POST</code></td><td><code>/api/admin/auth/verify</code></td><td>Verificar la vigencia del token de sesión administrativa Bearer (devuelve <code>{&quot;valid&quot;:true}</code> o HTTP 401).</td></tr><tr><td><code>GET</code></td><td><code>/api/admin/routes</code></td><td>Listar todas las rutas registradas con su configuración, estado activo o pausado (<code>enabled</code>), banderas <code>hasApiKey</code> y valores resueltos <code>effectiveMonitoring</code> y <code>effectiveTelegram</code>.</td></tr><tr><td><code>POST</code></td><td><code>/api/admin/routes</code></td><td>Registrar una nueva ruta de backend. Admite <code>apiKey</code> write-only (cifrada con AES-256-GCM), <code>monitoring</code> y <code>telegram</code>.</td></tr><tr><td><code>PUT</code></td><td><code>/api/admin/routes/{id}</code></td><td>Actualizar configuración completa de ruta. Para pausar o reanudar se envía la configuración con <code>&quot;enabled&quot;: false</code> o <code>true</code>. El secreto <code>apiKey</code> es write-only (omitir conserva, <code>&quot;&quot;</code> elimina, cadena establece). Omitir <code>monitoring</code> o <code>telegram</code> conserva overrides.</td></tr><tr><td><code>DELETE</code></td><td><code>/api/admin/routes/{id}</code></td><td>Eliminar una ruta de backend y sus secretos asociados en SQLite. Cancela notificaciones pendientes en outbox.</td></tr><tr><td><code>POST</code></td><td><code>/api/admin/routes/{id}/test</code></td><td>Ejecutar sondeo manual aislado hacia el backend. No altera incidentes, métricas históricas ni dispara alertas (devuelve HTTP 409 si el slot está ocupado).</td></tr><tr><td><code>GET</code></td><td><code>/api/admin/settings</code></td><td>Consultar la configuración global de monitoreo y Telegram. Expone <code>monitoring</code> y <code>telegram: {enabled, chatId, tokenConfigured}</code>.</td></tr><tr><td><code>PUT</code></td><td><code>/api/admin/settings</code></td><td>Actualizar ajustes globales. Admite <code>monitoring</code> y <code>telegram: {enabled, chatId, botToken}</code> con guardado atómico. <code>botToken</code> es write-only.</td></tr><tr><td><code>GET</code></td><td><code>/api/admin/notifications</code></td><td>Historial paginado de notificaciones outbox (query params <code>limit</code> y <code>offset</code>) con lista de items y objeto <code>summary</code> de contadores.</td></tr><tr><td><code>POST</code></td><td><code>/api/admin/notifications/test</code></td><td>Encolar un mensaje de prueba hacia Telegram con <code>{}</code> (destino global) o <code>{&quot;backendId&quot;:&quot;&lt;id&gt;&quot;}</code>. Responde <strong>HTTP 202 Accepted</strong>.</td></tr><tr><td><code>GET</code></td><td><code>/api/admin/metrics</code></td><td>Consultar métricas de latencia (P95, mínima, máxima, promedio) y contadores de disponibilidad por backend.</td></tr><tr><td><code>GET</code></td><td><code>/api/admin/logs</code></td><td>Consultar el registro en memoria de las últimas 2 000 decisiones de autenticación y autorización tomadas por el gateway.</td></tr><tr><td><code>GET</code></td><td><code>/api/admin/incidents</code></td><td>Consultar el historial persistido de cortes e indisponibilidad de backends registrados por el ciclo de sondeo.</td></tr></tbody></table></div></section>
+
+    <section id="notificaciones">
+      <h2>Notificaciones por Telegram</h2>
+      <p class="lead">Despacho asíncrono y resiliente de alertas de incidentes mediante una tabla outbox transaccional en SQLite, límites de despacho internos defensivos y gestión segura de credenciales write-only.</p>
+
+      <h3>Arquitectura y Eventos Automáticos</h3>
+      <p>El gateway emite notificaciones a través de Telegram únicamente ante transiciones confirmadas de estado en los backends:</p>
+      <ul>
+        <li><code>incident.opened</code>: Se emite de forma automática cuando los sondeos periódicos de salud (<code>/health</code>) acumulan consecutivamente la cantidad de fallos fijada en <code>failureThreshold</code> (por defecto 3).</li>
+        <li><code>incident.recovered</code>: Se emite cuando los sondeos periódicos registran consecutivamente la cantidad de éxitos fijada en <code>recoveryThreshold</code> (por defecto 2), confirmando la restauración del servicio.</li>
+      </ul>
+      <div class="callout">
+        <p><strong>Aislamiento de tráfico:</strong> El tráfico ordinario de clientes MQTT (<code>/auth</code> y <code>/acl</code>) y los sondeos manuales puntuales (<code>POST /api/admin/routes/{id}/test</code>) <strong>nunca abren ni cierran incidentes</strong> ni generan alertas de Telegram. Las alertas dependen exclusivamente del ciclo automatizado de monitoreo con histéresis.</p>
+      </div>
+
+      <h3>Pasos de Puesta en Marcha desde Ajustes</h3>
+      <ol>
+        <li><strong>Creación del bot:</strong> En Telegram, conversa con <code>@BotFather</code> mediante el comando <code>/newbot</code> para obtener el token HTTP de la API (ejemplo ilustrativo: <code>123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ_1234567</code>).</li>
+        <li><strong>Preparar el chat de destino:</strong> Obtén el identificador numérico (<code>chatId</code>). En chats directos inicia con <code>/start</code>; en grupos añade el bot; en canales añade el bot como Administrador con permisos de publicación de mensajes.</li>
+        <li><strong>Configuración en el panel:</strong> En la sección <strong>Ajustes</strong> del panel web (o mediante <code>PUT /api/admin/settings</code>), ingresa el Chat ID, el token del bot y activa la casilla de habilitación.</li>
+      </ol>
+
+      <h3>Contrato Write-Only, Cifrado AES-256-GCM y Clave Maestra</h3>
+      <p>El token del bot se gestiona bajo el modelo de secreto administrado unificado:</p>
+      <ul>
+        <li><strong>Almacenamiento cifrado:</strong> En SQLite, el token se guarda cifrado con AES-256-GCM (nonce de 12 bytes y AAD específico) utilizando la clave maestra de infraestructura <code>GATEWAY_MASTER_KEY</code> (32 bytes Base64 obligatoria en el entorno de arranque). La base de datos nunca almacena la clave maestra ni textos planos.</li>
+        <li><strong>Write-Only estricto:</strong> En <code>PUT /api/admin/settings</code>, enviar <code>telegram.botToken</code> con cadena no vacía establece o reemplaza el token (admite exclusivamente caracteres seguros <code>[A-Za-z0-9:_-]</code>). Omitir el campo conserva el token existente. Enviar cadena vacía (<code>&quot;&quot;</code>) elimina el token.</li>
+        <li><strong>Operación atómica:</strong> Es posible actualizar el estado en una sola solicitud JSON:
+          <div class="code-block"><div class="code-head"><span>PUT /api/admin/settings (Guardado atómico)</span><button type="button" class="copy-code" data-copy="payload-settings-telegram" aria-label="Copiar JSON"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg><span>Copiar</span></button></div><pre><code id="payload-settings-telegram">{
+  &quot;telegram&quot;: {
+    &quot;enabled&quot;: true,
+    &quot;chatId&quot;: &quot;-1001234567890&quot;,
+    &quot;botToken&quot;: &quot;123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ_1234567&quot;
+  }
+}</code></pre></div>
+        </li>
+        <li><strong>Regla de integridad:</strong> Intentar eliminar el token (<code>botToken: &quot;&quot;</code>) manteniendo <code>enabled: true</code> es rechazado con <strong>HTTP 400 sin cambios</strong>. No se pueden activar alertas sin token ni sin Chat ID.</li>
+        <li><strong>Presencia en consultas:</strong> Las respuestas <code>GET /api/admin/settings</code> exponen únicamente <code>tokenConfigured: true|false</code> para certificar la presencia local del secreto cifrado en SQLite (no valida la autenticidad ni vigencia del token ante Telegram, ni los permisos del bot en el chat de destino). La API y el panel nunca devuelven ni muestran el texto del token.</li>
+      </ul>
+
+      <h3>Herencia y Overrides por Ruta</h3>
+      <p>El interruptor global <code>telegram.enabled</code> actúa como <strong>interruptor maestro</strong>. Si está apagado (<code>false</code>), ninguna ruta emite alertas.</p>
+      <ul>
+        <li><strong>Herencia por defecto:</strong> Si una ruta define <code>enabled: null</code> y <code>chatId: null</code>, hereda automáticamente la configuración global.</li>
+        <li><strong>Exclusión explícita (Opt-out):</strong> Si una ruta define <code>telegram.enabled: false</code>, queda expresamente excluida de enviar alertas, incluso con el interruptor global encendido.</li>
+        <li><strong>Destino dedicado:</strong> Asignar un <code>chatId</code> propio en la ruta redirige sus alertas a un grupo o canal especializado.</li>
+        <li><strong>Preservación:</strong> En <code>PUT /api/admin/routes/{id}</code>, omitir el objeto <code>telegram</code> conserva los overrides configurados; enviar campos con valor <code>null</code> restablece la herencia global.</li>
+      </ul>
+
+      <h3>Ciclo de Vida del Outbox, Reintentos y Semántica de Entrega</h3>
+      <p>El registro del incidente y la inserción del mensaje en la tabla outbox ocurren dentro de la misma transacción atómica en SQLite. Posteriormente, un despachador en segundo plano procesa la cola de forma completamente asíncrona:</p>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Parámetro / Regla</th>
+              <th scope="col">Valor o Comportamiento</th>
+              <th scope="col">Efecto Operativo</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Límites de despacho internos</td>
+              <td>Mínimo 3 segundos entre envíos al mismo chat y máximo global de 10 intentos/segundo</td>
+              <td>Límites defensivos internos; no garantizan evitar respuestas HTTP 429 de Telegram. Ante un 429, el despachador respeta estrictamente el tiempo indicado en <code>parameters.retry_after</code>.</td>
+            </tr>
+            <tr>
+              <td>Intentos, Timeout y Reintentos</td>
+              <td>5 intentos totales (1 inicial + 4 reintentos) con timeout de 5 segundos</td>
+              <td>Backoff exponencial con esperas base de 10 s, 30 s, 120 s y 300 s con jitter. Errores 5xx y timeouts se reintentan; errores de cliente 4xx (salvo 429) pasan directo a <code>failed</code>.</td>
+            </tr>
+            <tr>
+              <td>Respuesta HTTP 429</td>
+              <td>Espera dinámica según <code>parameters.retry_after</code></td>
+              <td>Respeta exactamente el tiempo solicitado por Telegram antes de reintentar.</td>
+            </tr>
+            <tr>
+              <td>Capacidad de la cola outbox</td>
+              <td>10 000 eventos pendientes o en envío</td>
+              <td>Ante saturación extrema, nuevos eventos se marcan <code>not_enqueued</code> sin bloquear el gateway.</td>
+            </tr>
+            <tr>
+              <td>Expiración y Retención</td>
+              <td>Expiración a 24 horas; retención de 30 días</td>
+              <td>Mensajes no entregados tras 24 h pasan a <code>expired</code>; el historial se retiene 30 días desde <code>createdAt</code>.</td>
+            </tr>
+            <tr>
+              <td>Cancelación administrativa</td>
+              <td>Pausa, borrado de ruta o desactivación global</td>
+              <td>Cancela mensajes pendientes en cola (estado <code>cancelled</code>). Envíos ya entregados no se deshacen.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout">
+        <p><strong>Semántica At-Least-Once y ausencia de entrega garantizada:</strong> Si ocurre una partición de red en la que Telegram acepta el mensaje pero el gateway no recibe el acuse HTTP 200, el reintento puede originar un mensaje duplicado en el chat. No se asume entrega exactly-once. Tampoco existe garantía absoluta de entrega en todos los escenarios: mensajes pueden ser descartados por cola saturada (<code>not_enqueued</code>), rechazados por permisos inválidos (<code>failed</code>), cancelados administrativamente (<code>cancelled</code>) o expirar tras 24 horas de corte de red continuado (<code>expired</code>).</p>
+      </div>
+
+      <h3>Prueba de Notificación (POST /api/admin/notifications/test)</h3>
+      <div class="endpoint">
+        <span class="method post">POST</span>
+        <code>/api/admin/notifications/test</code>
+      </div>
+      <p>Permite validar la conectividad encolando un mensaje de prueba al destino global (<code>{}</code>) o al destino de una ruta específica (<code>{&quot;backendId&quot;:&quot;&lt;id&gt;&quot;}</code>).</p>
+      <p>Responde inmediatamente con <strong>HTTP 202 Accepted</strong> (con <code>status: &quot;pending&quot;</code> si se encola normalmente, o <code>status: &quot;not_enqueued&quot;</code> si la cola alcanzó su tope de 10 000 eventos):</p>
+      <div class="code-block"><div class="code-head"><span>Respuesta HTTP 202 Accepted</span><button type="button" class="copy-code" data-copy="payload-notif-test" aria-label="Copiar JSON"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg><span>Copiar</span></button></div><pre><code id="payload-notif-test">{
+  &quot;id&quot;: &quot;f47ac10b-58cc-4372-a567-0e02b2c3d479&quot;,
+  &quot;status&quot;: &quot;pending&quot;
+}</code></pre></div>
+      <p>El código HTTP 202 confirma que la solicitud ha sido evaluada y procesada por el outbox para su despacho en segundo plano; no representa entrega síncrona ni garantiza que el mensaje haya sido entregado en Telegram. Rutas pausadas o destinos no configurados son rechazados con HTTP 400.</p>
+
+      <h3>Historial y Resumen de Notificaciones (GET /api/admin/notifications)</h3>
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <code>/api/admin/notifications?limit=25&amp;offset=0</code>
+      </div>
+      <p>Consulta paginada del historial de eventos. Incluye desglose por estados exactos (<code>pending</code>, <code>sending</code>, <code>sent</code>, <code>failed</code>, <code>expired</code>, <code>cancelled</code>, <code>not_enqueued</code>) y saneamiento automático de errores para no divulgar tokens en registros:</p>
+      <div class="code-block"><div class="code-head"><span>Respuesta estructurada JSON</span><button type="button" class="copy-code" data-copy="payload-notif-history" aria-label="Copiar JSON"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg><span>Copiar</span></button></div><pre><code id="payload-notif-history">{
+  &quot;items&quot;: [
+    {
+      &quot;id&quot;: &quot;notif-01932f91-5b12-7000-84ab-c8e1049281a0&quot;,
+      &quot;backendId&quot;: &quot;iot-core-service&quot;,
+      &quot;incidentId&quot;: &quot;inc-01932f91-5a00-7000-9112-a1b2c3d4e5f6&quot;,
+      &quot;type&quot;: &quot;incident.opened&quot;,
+      &quot;chatId&quot;: &quot;-1001234567890&quot;,
+      &quot;status&quot;: &quot;sent&quot;,
+      &quot;attempts&quot;: 1,
+      &quot;createdAt&quot;: &quot;2026-11-15T12:00:00Z&quot;,
+      &quot;nextAttemptAt&quot;: &quot;2026-11-15T12:00:00Z&quot;,
+      &quot;sentAt&quot;: &quot;2026-11-15T12:00:02Z&quot;,
+      &quot;lastError&quot;: null
+    }
+  ],
+  &quot;total&quot;: 1,
+  &quot;limit&quot;: 25,
+  &quot;offset&quot;: 0,
+  &quot;summary&quot;: {
+    &quot;pending&quot;: 0,
+    &quot;sending&quot;: 0,
+    &quot;sent&quot;: 1,
+    &quot;failed&quot;: 0,
+    &quot;expired&quot;: 0,
+    &quot;cancelled&quot;: 0,
+    &quot;notEnqueued&quot;: 0,
+    &quot;oldestPendingAt&quot;: null
+  }
+}</code></pre></div>
+      <p>Para instrucciones completas de despliegue paso a paso, consulta la <a href="/gateway/telegram-docker.es.md">Guía de Telegram en Docker Compose</a> y el análisis arquitectónico en <a href="/gateway/three-phases.es.md">Las tres fases del gateway</a>.</p>
+    </section>
     <section id="auth">
       <h2>Autenticación de Clientes</h2>
       <div class="endpoint">
@@ -484,7 +639,7 @@
         </table>
       </div>
 
-      <p>El intervalo regular de sondeo es de 30 segundos, con un timeout máximo de 2 000 ms. La operación debe ser rápida, de solo lectura y no ejecutar escrituras pesadas en base de datos.</p>
+      <p>El siguiente sondeo comienza cuando termina el anterior y transcurre el intervalo configurado (por defecto 30 segundos, configurable globalmente o por ruta entre 1 y 86 400 s, con timeout de 100 a 60 000 ms estrictamente menor al intervalo). La apertura y cierre de incidentes se rige por umbrales: se requiere acumular el umbral de fallos consecutivos (por defecto 3) para confirmar la caída y abrir un incidente, y el umbral de éxitos consecutivos (por defecto 2) para confirmar la recuperación. La operación debe ser rápida, de solo lectura y no ejecutar escrituras pesadas en base de datos.</p>
     </section>
 
     <section id="api-key">
@@ -510,6 +665,10 @@
             <tr>
               <td>Aislamiento de Tokens</td>
               <td>La clave <code>X-EMQX-API-KEY</code> es exclusiva entre el gateway y el backend. Nunca debe reutilizarse el token Bearer administrativo ni credenciales de usuario final.</td>
+            </tr>
+            <tr>
+              <td>Secretos Cifrados en Panel</td>
+              <td>En el gateway, las claves se configuran desde el panel web o API y se almacenan cifradas en SQLite con AES-256-GCM. La clave maestra <code>GATEWAY_MASTER_KEY</code> habilita su descifrado exclusivo en memoria RAM.</td>
             </tr>
           </tbody>
         </table>
@@ -548,12 +707,12 @@
             <tr>
               <td><code>HTTP 5xx</code> (500, 502, 503, 504)</td>
               <td>Falla interna en el backend</td>
-              <td>Acceso denegado. Se registra incidente si persiste.</td>
+              <td>Acceso denegado (denegación registrada en auditoría y métricas). El tráfico de autenticación/ACL nunca abre incidentes por sí mismo; únicamente los sondeos periódicos de salud (<code>/health</code>) abren o cierran incidentes tras alcanzar el umbral consecutivo (<code>failureThreshold</code>).</td>
             </tr>
             <tr>
-              <td>Timeout (&gt; 2 000 ms) o conexión rehusada</td>
+              <td>Timeout (&gt; 2 000 ms por defecto en config <code>gateway.timeout-ms</code> para tráfico auth/ACL; no confundir con <code>probeTimeoutMs</code> configurable para sondeos) o conexión rehusada</td>
               <td>Servicio no disponible o saturado</td>
-              <td>Acceso denegado inmediatamente tras el tiempo límite.</td>
+              <td>Acceso denegado inmediatamente tras el tiempo límite configurado para la llamada.</td>
             </tr>
           </tbody>
         </table>

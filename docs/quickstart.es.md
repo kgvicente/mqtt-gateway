@@ -5,7 +5,7 @@
 Para una demo con bróker MQTT real, consulta la [guía de Docker Compose](compose.es.md).
 
 Ejecuta el gateway con un backend HTTP pequeño para probar autenticación y permisos
-de tópicos. Esta demostración HTTP no requiere bróker MQTT, base de datos, Docker
+de tópicos. Esta demostración HTTP no requiere bróker MQTT, servidor de base de datos externo, Docker
 ni una cuenta EMQX. No establece una conexión MQTT real.
 
 Usa Linux o WSL con JDK 25, Python 3, Git y curl. El almacenamiento actual utiliza
@@ -29,13 +29,46 @@ El backend escucha en `127.0.0.1:19090`. Sus credenciales fijas son
 
 En la terminal 2, desde el mismo directorio del repositorio:
 
+Carga tu clave maestra criptográfica desde el archivo privado persistido `master.env` fuera del repositorio (creado una sola vez siguiendo el [procedimiento seguro en la guía de Telegram](telegram-docker.es.md#2-preparación-de-la-clave-maestra-masterenv)). Si la base de datos `data/gateway.db` ya fue creada con secretos, reutilizar siempre la clave persistida garantiza que el canary criptográfico valide el arranque:
+
+En Linux / macOS (Bash):
+
 ```sh
+# 1. Cargar clave maestra desde el archivo privado persistido fuera del repositorio:
+master_env_path="${XDG_CONFIG_HOME:-$HOME/.config}/mqtt-gateway/master.env"
+# Si aún no existe, genéralo una sola vez según la guía de Telegram
+set -a
+. "$master_env_path"
+set +a
+
+# 2. Variables de autenticación administrativa:
 export GATEWAY_ADMIN_AUTH_PROVIDER=internal
 export GATEWAY_ADMIN_USERNAME=admin
 export GATEWAY_ADMIN_PASSWORD='change-this-local-demo-password'
+
+# 3. Compilar e iniciar el gateway
 ./mvnw package
 java -jar target/quarkus-app/quarkus-run.jar
 ```
+
+*(En Windows PowerShell: carga `master.env` persistido en el proceso sin imprimir la clave:)*
+
+```powershell
+$masterEnvPath = Join-Path $env:USERPROFILE '.config\mqtt-gateway\master.env'
+Get-Content $masterEnvPath | ForEach-Object {
+    if ($_ -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$') {
+        [System.Environment]::SetEnvironmentVariable($matches[1], $matches[2], 'Process')
+    }
+}
+$env:GATEWAY_ADMIN_AUTH_PROVIDER = 'internal'
+$env:GATEWAY_ADMIN_USERNAME = 'admin'
+$env:GATEWAY_ADMIN_PASSWORD = 'change-this-local-demo-password'
+./mvnw.cmd package
+java -jar target/quarkus-app/quarkus-run.jar
+```
+
+> [!NOTE]
+> `GATEWAY_MASTER_KEY` es una clave obligatoria de 32 bytes en Base64 para el cifrado AES-256-GCM en SQLite. Mantenerla en el archivo privado persistido `master.env` fuera del repositorio asegura que la clave se preserve entre sesiones de shell y reinicios sin exponer secretos en consola o historial.
 
 Abre <http://127.0.0.1:8085/gateway/> e ingresa como `admin` con la contraseña
 anterior. La documentación está en <http://127.0.0.1:8085/gateway/docs>.
@@ -95,7 +128,7 @@ intervalo predeterminado de 30 segundos, el historial se llena gradualmente.
 
 ## 5. Detén o restablece la demostración
 
-Pulsa Ctrl+C en las terminales 1 y 2. Las rutas e incidentes permanecen en `data/`;
+Pulsa Ctrl+C en las terminales 1 y 2. Las rutas e incidentes permanecen en SQLite embebido (`data/gateway.db`);
 puedes reiniciar para seguir usándolos. Pausa o elimina la ruta de demostración
 desde el panel cuando termines. La UI pide la contraseña administrativa
 configurada al eliminar una ruta.

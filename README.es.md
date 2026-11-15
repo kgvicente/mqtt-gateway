@@ -21,16 +21,31 @@ El panel administrativo actual está en español.*
 
 ## Pruébalo en tu equipo
 
-### Inicio rápido (Contenedor precompilado)
+> [!NOTE]
+> **Compilación local e imagen de contenedor en registro:**
+> El código fuente de este checkout incorpora las características de **secretos administrados desde el panel con cifrado AES-256-GCM**, outbox transaccional y clave maestra obligatoria. La imagen del registro (`ghcr.io/kgvicente/mqtt-gateway:latest`) se actualiza únicamente tras la ejecución exitosa del pipeline de integración continua (CI) sobre la rama principal (`main`). Los comandos de compilación local (`docker build -t mqtt-gateway:local .` o `docker compose up --build`) reproducen fielmente en todo momento el código exacto de este checkout.
 
-Ejecuta el gateway directamente sin clonar el repositorio ni compilar:
+### Inicio rápido con contenedor local
+
+Para ejecutar de manera reproducible el código exacto de este checkout sin depender de la publicación de imágenes en el registro por el pipeline de CI, compila y ejecuta el contenedor localmente:
 
 ```sh
-docker run -d --name mqtt-gateway -p 18085:8085 \
+# 1. Compilar la imagen localmente desde el repositorio:
+docker build -t mqtt-gateway:local .
+
+# 2. Ejecutar con volumen persistente para SQLite y tu master.env fuera del repositorio:
+master_env_path="${XDG_CONFIG_HOME:-$HOME/.config}/mqtt-gateway/master.env"
+docker run -d --name mqtt-gateway -p 127.0.0.1:18085:8085 \
+  --env-file "$master_env_path" \
   -e GATEWAY_ADMIN_AUTH_PROVIDER=internal \
   -e GATEWAY_ADMIN_PASSWORD=local-demo-admin-2026 \
-  ghcr.io/kgvicente/mqtt-gateway:latest
+  -v gateway-data:/app/data \
+  mqtt-gateway:local
 ```
+
+*(En Windows PowerShell: `docker build -t mqtt-gateway:local .`; `$masterEnvPath = Join-Path $env:USERPROFILE '.config\mqtt-gateway\master.env'`; luego `docker run -d --name mqtt-gateway -p 127.0.0.1:18085:8085 --env-file $masterEnvPath -e GATEWAY_ADMIN_AUTH_PROVIDER=internal -e GATEWAY_ADMIN_PASSWORD=local-demo-admin-2026 -v gateway-data:/app/data mqtt-gateway:local`).*
+
+Consulta el [procedimiento de generación segura de master.env fuera del repo en la guía de Telegram](docs/telegram-docker.es.md#2-preparación-de-la-clave-maestra-masterenv).
 
 Abre <http://127.0.0.1:18085/gateway/> e ingresa con `admin` / `local-demo-admin-2026`.
 
@@ -40,18 +55,27 @@ Para una demostración MQTT real con Mosquitto y pruebas automatizadas, usa **Do
 en un equipo AMD64. Docker Desktop puede ejecutarlos en Windows. Esta opción no
 requiere JDK, Python ni clientes MQTT instalados en el host.
 
+Antes de iniciar por primera vez, genera tu archivo privado `master.env` fuera del repositorio (en Bash: `master_env_path="${XDG_CONFIG_HOME:-$HOME/.config}/mqtt-gateway/master.env"`; en PowerShell: `$masterEnvPath = Join-Path $env:USERPROFILE '.config\mqtt-gateway\master.env'`). Todos los comandos deben incluir `--env-file`:
+
 ```sh
 git clone https://github.com/kgvicente/mqtt-gateway.git
 cd mqtt-gateway
-docker compose up --build --wait
+
+# Iniciar la composición reutilizando tu master.env persistido:
+docker compose --env-file "$master_env_path" up --build --wait
 ```
+
+*(En Windows PowerShell: `docker compose --env-file $masterEnvPath up --build --wait`)*
 
 Abre <http://127.0.0.1:18085/gateway/> e ingresa con
 `admin` / `local-demo-admin-2026`. Son credenciales públicas de la demo local.
 
 ```sh
-docker compose --profile test run --rm mqtt-tests
+# Ejecutar las comprobaciones automáticas de MQTT:
+docker compose --env-file "$master_env_path" --profile test run --rm mqtt-tests
 ```
+
+*(En Windows PowerShell: `docker compose --env-file $masterEnvPath --profile test run --rm mqtt-tests`)*
 
 Las pruebas comprueban entrega real de mensajes MQTT 5 y rechazo de contraseñas,
 publicaciones y suscripciones no autorizadas. Consulta la
@@ -109,7 +133,11 @@ para ver payloads y configuración.
 - Consultar sondeos con fecha, tendencias de latencia e historial de incidentes.
 - Autenticación administrativa interna o delegada a EMQX. Las sesiones internas
   caducan a las ocho horas y se pierden al reiniciar.
-- Rutas y estado operativo en archivos JSON locales, sin base de datos.
+- Rutas, ajustes, incidentes y checkpoints en base de datos SQLite integrada (`data/gateway.db`) en modo WAL, sin requerir servidores de base de datos externos.
+- Monitoreo configurable en caliente: intervalo de sondeo, timeout y umbrales de fallos (corte) y éxitos (recuperación) con herencia por backend y estimación aproximada de detección.
+- Notificaciones de incidentes en tiempo real vía Telegram mediante outbox transaccional, entrega at-least-once, herencia por ruta y control de rate limits oficial.
+- Gestión de secretos administrados desde el panel con cifrado AES-256-GCM en base de datos SQLite y clave maestra obligatoria de infraestructura (`GATEWAY_MASTER_KEY` de 32 bytes Base64). Campos *write-only* (`apiKey`, `botToken`) y caché privada en memoria RAM; eliminación de `apiKeyEnv`.
+- Sembrado inicial de rutas mediante YAML; importación transaccional de datos legados y copias de seguridad offline considerando archivos WAL.
 
 ## Desarrolla con Agentes de IA (Cursor, Claude, Copilot)
 
@@ -164,6 +192,8 @@ existente. No hay almacenamiento distribuido ni coordinación de alta disponibil
 - [Inicio rápido](docs/quickstart.es.md) · [Quick start in English](docs/quickstart.md)
 - [Referencia técnica](docs/reference.es.md)
 - [Manual de operaciones](MANUAL_OPERACIONES.md)
+- [Telegram en Docker Compose](docs/telegram-docker.es.md)
+- [Las tres fases del gateway](docs/three-phases.es.md)
 - [Política de contribuciones y revisión](CONTRIBUTING.md)
 
 Si encuentras un problema, [abre un issue](https://github.com/kgvicente/mqtt-gateway/issues)

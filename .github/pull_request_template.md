@@ -20,12 +20,12 @@ Describe the tests you ran to verify your changes:
 
 - [ ] Built the project with `./mvnw package` (JDK 25)
 - [ ] Ran smoke test suite: `python3 scripts/smoke.py`
-- [ ] Ran Docker Compose tests if applicable: `docker compose --profile test run --rm mqtt-tests`
+- [ ] Ran Docker Compose tests if applicable: `docker compose --env-file master.env --profile test run --rm mqtt-tests`
 - [ ] Manual testing (describe below):
 
 ## Contributor Checklist
 
-In accordance with [CONTRIBUTING.md](CONTRIBUTING.md):
+In accordance with [CONTRIBUTING.md](../CONTRIBUTING.md):
 
 - [ ] My code adheres to the project coding style.
 - [ ] I have self-reviewed my changes.

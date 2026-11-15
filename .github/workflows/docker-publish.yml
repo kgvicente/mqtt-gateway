@@ -1,14 +1,8 @@
 name: Publish Docker image
 
 on:
+  workflow_call:
   push:
-    branches: [main]
-    paths:
-      - 'src/**'
-      - pom.xml
-      - Dockerfile
-      - compose.yaml
-      - .github/workflows/docker-publish.yml
     tags: ['v*']
   workflow_dispatch:
 
@@ -40,7 +34,7 @@ jobs:
           tags: |
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=semver,pattern={{version}}
-            type=sha,enable=${{ github.event_name == 'workflow_dispatch' }}
+            type=sha
 
       - name: Build and push
         uses: docker/build-push-action@v6

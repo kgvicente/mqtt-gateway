@@ -1,12 +1,16 @@
 # MQTT Gateway
 
 > Proxy inverso y gateway HTTP de alto rendimiento que desacopla brókers MQTT (EMQX, Mosquitto, VerneMQ) de los microservicios de backend. Centraliza autenticación de clientes, control de acceso a tópicos (ACL) y supervisión de disponibilidad con observabilidad en tiempo real.
+>
+> **Fuente de verdad:** El código fuente del repositorio ([AdminResource.java](https://github.com/kgvicente/mqtt-gateway/blob/main/src/main/java/pe/gateway/AdminResource.java), [GatewayState.java](https://github.com/kgvicente/mqtt-gateway/blob/main/src/main/java/pe/gateway/GatewayState.java), [StorageService.java](https://github.com/kgvicente/mqtt-gateway/blob/main/src/main/java/pe/gateway/StorageService.java), [GatewayConfig.java](https://github.com/kgvicente/mqtt-gateway/blob/main/src/main/java/pe/gateway/GatewayConfig.java), [application.yml](https://github.com/kgvicente/mqtt-gateway/blob/main/src/main/resources/application.yml)) es la máxima autoridad técnica y contractual del sistema. Planes y auditorías son registros históricos de diseño.
 
 ## Documentación Principal
 
 - [/gateway/docs](/gateway/docs.md): Especificación técnica completa de contratos HTTP, esquemas JSON, sondeos y códigos de error.
 - [Inicio Rápido](https://github.com/kgvicente/mqtt-gateway/blob/main/docs/quickstart.es.md): Despliegue en 5 minutos con Docker Compose o binario nativo.
 - [Docker Compose](https://github.com/kgvicente/mqtt-gateway/blob/main/docs/compose.es.md): Arquitectura del stack de demostración con bróker MQTT y backends simulados.
+- [Telegram en Docker](/gateway/telegram-docker.es.md): Puesta en marcha segura de alertas por Telegram con override local.
+- [Las tres fases del gateway](/gateway/three-phases.es.md): Arquitectura de persistencia SQLite, histéresis de monitoreo y outbox transaccional.
 
 ## Endpoints de Tráfico MQTT
 
@@ -18,18 +22,22 @@
 - [POST /api/v1/gateway/vernemq/acl](/api/v1/gateway/vernemq/acl): Webhooks auth_on_publish y auth_on_subscribe de VerneMQ.
 - [POST /api/v1/gateway/generic/auth](/api/v1/gateway/generic/auth): Formato agnóstico (JSON con allowed: boolean).
 - [POST /api/v1/gateway/generic/acl](/api/v1/gateway/generic/acl): Formato agnóstico para otros brókers.
-- [GET /q/health](/q/health): Sondeo de salud interno del runtime Quarkus.
+- [GET /q/health](/q/health): Estado operativo del proceso Quarkus.
 
 ## API Administrativa (Requiere Authorization: Bearer <token>)
 
 - [POST /api/admin/auth/login](/api/admin/auth/login): Autenticación administrativa local o delegada a EMQX.
-- [GET /api/admin/auth/verify](/api/admin/auth/verify): Verificación de validez de token.
-- [GET /api/admin/routes](/api/admin/routes): Listado de backends y prefijos de enrutamiento.
-- [POST /api/admin/routes](/api/admin/routes): Registrar un nuevo backend HTTP (name, authPrefixes, aclPrefixes, authUrl, aclUrl, healthUrl, apiKey).
-- [PUT /api/admin/routes/{id}](/api/admin/routes/{id}): Modificar configuración de backend o pausar tráfico.
-- [DELETE /api/admin/routes/{id}](/api/admin/routes/{id}): Eliminar un backend.
-- [POST /api/admin/routes/{id}/test](/api/admin/routes/{id}/test): Disparar un sondeo HTTP inmediato de salud.
-- [GET /api/admin/metrics](/api/admin/metrics): Métricas de latencia (P95, min, max, promedio) y disponibilidad.
+- [GET /api/admin/auth/verify](/api/admin/auth/verify): Validar token activo.
+- [GET /api/admin/settings](/api/admin/settings): Consultar ajustes globales de monitoreo (probeIntervalSeconds, probeTimeoutMs, failureThreshold, recoveryThreshold) y estado de notificaciones Telegram (enabled, chatId, tokenConfigured).
+- [PUT /api/admin/settings](/api/admin/settings): Modificar ajustes globales de monitoreo y/o Telegram en caliente (omitir una sección la conserva sin cambios). Para activar Telegram se exige token de bot (write-only `telegram.botToken` en PUT o preexistente) y chatId no vacío (400 si falta). La eliminación del token (`botToken: ""`) exige desactivar Telegram en la misma solicitud.
+- [GET /api/admin/routes](/api/admin/routes): Listado de backends, prefijos, hasApiKey y valores resueltos de effectiveMonitoring y effectiveTelegram.
+- [POST /api/admin/routes](/api/admin/routes): Registrar un nuevo backend HTTP (name, authPrefixes, aclPrefixes, authUrl, aclUrl, healthUrl, apiKey write-only opcional, monitoring opcional, telegram opcional). Los secretos se almacenan cifrados con AES-256-GCM en SQLite usando GATEWAY_MASTER_KEY; apiKeyEnv se rechaza con 400.
+- [PUT /api/admin/routes/{id}](/api/admin/routes/{id}): Modificar configuración de backend o pausar tráfico (apiKey write-only: omitido conserva, "" elimina, cadena no vacía establece; omitir monitoring o telegram conserva overrides, campos null eliminan override y heredan del global). Desactivar o pausar cancela notificaciones pendientes sin enviar recuperación.
+- [DELETE /api/admin/routes/{id}](/api/admin/routes/{id}): Eliminar un backend (cancela notificaciones pendientes).
+- [POST /api/admin/routes/{id}/test](/api/admin/routes/{id}/test): Disparar un sondeo HTTP inmediato de salud (devuelve 409 si el slot está ocupado; manual no altera métricas ni incidentes).
+- [GET /api/admin/notifications](/api/admin/notifications): Consultar historial de notificaciones y resumen de cola outbox (`items`, `total`, `limit`, `offset`, `summary` con `pending`, `sending`, `sent`, `failed`, `expired`, `cancelled`, `notEnqueued`, `oldestPendingAt`).
+- [POST /api/admin/notifications/test](/api/admin/notifications/test): Encolar notificación de prueba a destino preconfigurado (`backendId` opcional en body). Devuelve HTTP 202 `{id, status: "pending" | "not_enqueued"}` indicando procesamiento outbox para envío en segundo plano (estado `not_enqueued` si se satura la cola de 10 000 notificaciones). Requiere Telegram habilitado con token y destino activo.
+- [GET /api/admin/metrics](/api/admin/metrics): Métricas de latencia y disponibilidad por umbrales (consecutiveFailures, consecutiveSuccesses, pendingState, awaitingObservation).
 - [GET /api/admin/logs](/api/admin/logs): Registro de auditoría de decisiones en vivo (hasta 2 000 eventos).
 - [GET /api/admin/incidents](/api/admin/incidents): Registro persistente de incidentes e interrupciones.
 
@@ -37,15 +45,15 @@
 
 - **Autenticación (POST authUrl):**
   - Payload enviado: `{"clientid":"<id>","username":"<user>","password":"<pass>"}`
-  - Cabecera opcional: `X-EMQX-API-KEY: <clave configurada>`
+  - Cabecera opcional: `X-EMQX-API-KEY: <clave cifrada configurada en backend>`
   - Respuesta esperada: HTTP 200 con `{"result":"allow"}` o `{"result":"deny"}`.
 - **Autorización (POST aclUrl):**
   - Payload enviado: `{"clientid":"<id>","username":"<user>","topic":"<topic>","action":"publish"|"subscribe"}`
-  - Cabecera opcional: `X-EMQX-API-KEY: <clave configurada>`
+  - Cabecera opcional: `X-EMQX-API-KEY: <clave cifrada configurada en backend>`
   - Respuesta esperada: HTTP 200 con `{"result":"allow"}` o `{"result":"deny"}`.
 - **Sondeo de Salud (GET healthUrl):**
   - Método: `GET` (rápido, de solo lectura, timeout 2 000 ms).
-  - Cabecera opcional: `X-EMQX-API-KEY: <clave configurada>`
+  - Cabecera opcional: `X-EMQX-API-KEY: <clave cifrada configurada en backend>`
   - Respuesta disponible: Cualquier HTTP < 500 (200, 401, 403, 404 confirman servicio vivo). Códigos 5xx o timeout abren incidente.
 
 ## Optional

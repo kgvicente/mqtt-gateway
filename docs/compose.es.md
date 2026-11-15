@@ -13,10 +13,20 @@ o emulación ARM no está validada.
 
 ## Iniciar
 
-Desde una copia de esta versión del repositorio:
+Antes de iniciar por primera vez, crea el archivo privado `master.env` fuera del repositorio con tu clave maestra criptográfica de 32 bytes (consulta el [procedimiento de generación segura fuera del repositorio en la guía de Telegram](telegram-docker.es.md#2-preparación-de-la-clave-maestra-masterenv)). Si ya dispones de una base de datos con datos cifrados previos, reutiliza tu archivo `master.env` existente para no alterar los secretos.
+
+Una vez creado `master.env`, todos los comandos de Docker Compose deben incluir `--env-file "$master_env_path"` (en Bash) o `--env-file $masterEnvPath` (en PowerShell):
 
 ```sh
-docker compose up --build --wait
+# En Linux / macOS (Bash):
+master_env_path="${XDG_CONFIG_HOME:-$HOME/.config}/mqtt-gateway/master.env"
+docker compose --env-file "$master_env_path" up --build --wait
+```
+
+```powershell
+# En Windows (PowerShell):
+$masterEnvPath = Join-Path $env:USERPROFILE '.config\mqtt-gateway\master.env'
+docker compose --env-file $masterEnvPath up --build --wait
 ```
 
 La primera compilación descarga imágenes, Maven y dependencias Java. Las
@@ -48,7 +58,11 @@ lo utiliza. Detén la demo o cambia `DEMO_HTTP_PORT`.
 ## Ejecutar pruebas MQTT reales
 
 ```sh
-docker compose --profile test run --rm mqtt-tests
+# En Linux / macOS (Bash):
+docker compose --env-file "$master_env_path" --profile test run --rm mqtt-tests
+
+# En Windows (PowerShell):
+docker compose --env-file $masterEnvPath --profile test run --rm mqtt-tests
 ```
 
 El servicio utiliza los clientes MQTT 5 de Mosquitto y termina con estado
@@ -72,14 +86,16 @@ permisos de publicación/suscripción en `demo/*`, excepto el subárbol
 En la terminal 1:
 
 ```sh
-docker compose exec mosquitto mosquitto_sub -h 127.0.0.1 -V mqttv5 \
+docker compose --env-file "$master_env_path" exec mosquitto mosquitto_sub -h 127.0.0.1 -V mqttv5 \
   -i demo_manual_sub -u demo-user -P demo-password -t demo/temperature -q 1
 ```
+
+*(En Windows PowerShell: usa `--env-file $masterEnvPath`)*
 
 En la terminal 2:
 
 ```sh
-docker compose exec mosquitto mosquitto_pub -h 127.0.0.1 -V mqttv5 \
+docker compose --env-file "$master_env_path" exec mosquitto mosquitto_pub -h 127.0.0.1 -V mqttv5 \
   -i demo_manual_pub -u demo-user -P demo-password -t demo/temperature -q 1 -m 23.5
 ```
 
@@ -89,14 +105,17 @@ para revisar las decisiones de autenticación y ACL correspondientes.
 ## Detener, conservar estado o restablecer
 
 ```sh
-docker compose down
+# Detener los servicios conservando el estado y volumen de datos:
+docker compose --env-file "$master_env_path" down
 ```
+
+*(En Windows PowerShell: `docker compose --env-file $masterEnvPath down`)*
 
 Las rutas y el estado del gateway se conservan en el volumen `gateway-data`.
 Para empezar de cero, este comando también elimina el volumen de la demo:
 
 ```sh
-docker compose down --volumes
+docker compose --env-file "$master_env_path" down --volumes
 ```
 
 ## Alcance de v0.1.0

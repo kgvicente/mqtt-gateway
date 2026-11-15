@@ -48,6 +48,13 @@ async def main():
     logs = [dict(timestamp=stamp(n*18), type="acl" if n%2 else "auth", client=f"core_sensor_{n:02}",
                  topic="core/temperature" if n%2 else "", result="deny" if n==3 else "allow",
                  backend="IoT Core Service",latencyMs=24+n*1.5) for n in range(14)]
+    settings = dict(monitoring=dict(probeIntervalSeconds=30, probeTimeoutMs=2000, failureThreshold=3, recoveryThreshold=2),
+                    telegram=dict(enabled=True, chatId="-100123456789", tokenConfigured=True))
+    notifications = dict(items=[dict(id="notif-1", backendId="telemetry", incidentId="demo-incident", type="incident_opened",
+                                     chatId="-100123456789", status="sent", attempts=1, createdAt=stamp(180),
+                                     nextAttemptAt=stamp(180), sentAt=stamp(178), lastError=None)],
+                         total=1, limit=25, offset=0,
+                         summary=dict(pending=0, sending=0, sent=1, failed=0, expired=0, cancelled=0, notEnqueued=0, oldestPendingAt=None))
     server = ThreadingHTTPServer(("127.0.0.1",0),partial(StaticFiles,directory=str(WEB)))
     threading.Thread(target=server.serve_forever,daemon=True).start()
     IMAGES.mkdir(parents=True,exist_ok=True)
@@ -62,11 +69,11 @@ async def main():
                 errors = []
                 page.on("pageerror",lambda error: errors.append(str(error)))
                 async def mock(route):
-                    path = route.request.url.split("/api/admin")[-1]
+                    path = route.request.url.split("/api/admin")[-1].split("?")[0]
                     if path.startswith("/stream"):
                         return await route.fulfill(status=200,content_type="text/event-stream",body=": demo\n\n")
                     data = {"/auth/verify":{"valid":True},"/routes":routes,"/metrics":metrics,
-                            "/incidents":incidents,"/logs":logs}
+                            "/incidents":incidents,"/logs":logs,"/settings":settings,"/notifications":notifications}
                     assert path in data,path
                     await route.fulfill(status=200,json=data[path])
                 await page.route("**/api/admin/**",mock)

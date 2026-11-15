@@ -168,8 +168,10 @@ public class GatewayResource {
                 result = "allow";
                 return Map.of("result", result, "is_superuser", false);
             }
-            route = state.match(key, auth);
-            if (route == null) { result = "ignore"; return result(result); }
+            GatewayState.RouteSnapshot matched = state.matchRoute(key, auth);
+            if (matched == null) { result = "ignore"; return result(result); }
+            route = matched.route();
+            String apiKey = matched.apiKey();
             long backendStart = System.nanoTime();
             String failure = null;
             HttpResponse<String> response;
@@ -178,9 +180,9 @@ public class GatewayResource {
                         .timeout(Duration.ofMillis(config.timeoutMs()))
                         .header("Content-Type", MediaType.APPLICATION_JSON)
                         .POST(HttpRequest.BodyPublishers.ofString(body));
-                // ponytail: la clave del backend solo se envía si está configurada.
-                if (!route.path("apiKey").asText("").isEmpty())
-                    builder.header("X-EMQX-API-KEY", route.path("apiKey").asText());
+                if (apiKey != null && !apiKey.isBlank()) {
+                    builder.header("X-EMQX-API-KEY", apiKey);
+                }
                 response = state.client.send(builder.build(), HttpResponse.BodyHandlers.ofString());
                 if (response.statusCode() >= 500) failure = "HTTP " + response.statusCode();
             } catch (Exception e) {

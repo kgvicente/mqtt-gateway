@@ -17,6 +17,7 @@ services:
       GATEWAY_ADMIN_AUTH_PROVIDER: internal
       GATEWAY_ADMIN_USERNAME: admin
       GATEWAY_ADMIN_PASSWORD: local-demo-admin-2026
+      GATEWAY_MASTER_KEY: ${GATEWAY_MASTER_KEY:?Variable GATEWAY_MASTER_KEY obligatoria (Base64 de 32 bytes)}
     ports:
       - "127.0.0.1:${DEMO_HTTP_PORT:-18085}:8085"
     volumes:

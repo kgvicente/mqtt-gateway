@@ -113,6 +113,23 @@ public class AdminResource {
         } catch (Exception e) { throw error(502, "Respuesta de inicio de sesión EMQX inválida"); }
     }
 
+    @GET @Path("/settings")
+    public JsonNode settings(@HeaderParam("Authorization") String auth) {
+        require(auth);
+        return state.settings();
+    }
+
+    @PUT @Path("/settings") @Consumes(MediaType.APPLICATION_JSON)
+    public JsonNode updateSettings(@HeaderParam("Authorization") String auth, ObjectNode body) {
+        require(auth);
+        if (body == null) throw error(400, "Se requiere el cuerpo de configuración");
+        try {
+            return state.updateSettings(body);
+        } catch (BadRequestException e) {
+            throw error(400, e.getMessage());
+        }
+    }
+
     @GET @Path("/routes")
     public JsonNode routes(@HeaderParam("Authorization") String auth) {
         require(auth); return state.routes(false);
@@ -194,6 +211,25 @@ public class AdminResource {
     @GET @Path("/incidents")
     public JsonNode incidents(@HeaderParam("Authorization") String auth) {
         require(auth); return state.incidents();
+    }
+
+    @GET @Path("/notifications")
+    public JsonNode notifications(
+            @HeaderParam("Authorization") String auth,
+            @QueryParam("limit") @DefaultValue("25") int limit,
+            @QueryParam("offset") @DefaultValue("0") int offset) {
+        require(auth);
+        return state.getNotificationHistory(limit, offset);
+    }
+
+    @POST @Path("/notifications/test")
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response testNotification(
+            @HeaderParam("Authorization") String auth,
+            ObjectNode body) {
+        require(auth);
+        ObjectNode res = state.createTestNotification(body);
+        return Response.status(202).entity(res).build();
     }
 
     @GET @Path("/logs")

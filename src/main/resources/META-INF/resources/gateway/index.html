@@ -310,6 +310,15 @@ html[data-theme="light"] .hb-swatch.good{background:var(--teal-dark);border:1px 
 .hb-legend .hb-swatch{padding:0;flex:0 0 9px;width:9px;height:14px;min-height:0}
 @media(max-width:1100px){.detail-split{grid-template-columns:minmax(0,1fr)}}
 
+.overrides-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.override-item{display:flex;flex-direction:column;gap:4px;min-width:0}
+.override-head{display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+.override-head label{font-size:12px;color:var(--muted);margin:0}
+.override-head .check{font-size:11px;margin:0;white-space:nowrap}
+@media(max-width:640px){
+  .overrides-grid{grid-template-columns:1fr}
+}
+
 /* ponytail: estados nativos compartidos, sin otra biblioteca de componentes. */
 @keyframes spin{to{transform:rotate(360deg)}}
 .is-loading::before{content:"";width:14px;height:14px;flex:0 0 14px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:spin .8s linear infinite}
@@ -489,9 +498,13 @@ html[data-theme="light"] #server-view{--host-cpu:#008176;--host-user:#b22e28;--h
           <div class="spec-item"><label>URL de sondeo</label><div class="spec-val technical" id="det-spec-health">–</div></div>
           <div class="spec-item"><label>Prefijos de ClientID</label><div class="prefixes" id="det-spec-auth-pref"></div></div>
           <div class="spec-item"><label>Prefijos de tópico</label><div class="prefixes" id="det-spec-acl-pref"></div></div>
-          <div class="spec-item"><label>Frecuencia de sondeo</label><div class="spec-val">Cada 30 segundos</div></div>
-          <div class="spec-item"><label>Timeout de conexión</label><div class="spec-val">5 000 ms</div></div>
+          <div class="spec-item"><label>Frecuencia de sondeo</label><div class="spec-val" id="det-spec-interval">Cada 30 s</div></div>
+          <div class="spec-item"><label>Timeout de sondeo</label><div class="spec-val" id="det-spec-timeout">2 000 ms</div></div>
+          <div class="spec-item"><label>Umbrales de detección</label><div class="spec-val" id="det-spec-thresholds">3 fallos / 2 éxitos</div></div>
+          <div class="spec-item"><label>Detección estimada</label><div class="spec-val" id="det-spec-estimate">Caída: ~90–96 s · Recuperación: ~60–64 s</div></div>
+          <div class="spec-item"><label>Estado de observación</label><div class="spec-val" id="det-spec-pending">—</div></div>
           <div class="spec-item"><label>Autenticación (API Key)</label><div class="spec-val" id="det-spec-key">–</div></div>
+          <div class="spec-item"><label>Notificaciones Telegram</label><div class="spec-val" id="det-spec-telegram">—</div></div>
         </div>
       </div>
 
@@ -551,6 +564,7 @@ html[data-theme="light"] #server-view{--host-cpu:#008176;--host-user:#b22e28;--h
         <p>Supervisión en tiempo real de rutas, tráfico y disponibilidad.</p>
       </div>
       <div class="title-actions">
+        <button type="button" id="open-settings-btn" title="Ajustes globales de monitoreo"></button>
         <button id="refresh"></button>
         <button class="primary" id="register"></button>
       </div>
@@ -563,6 +577,7 @@ html[data-theme="light"] #server-view{--host-cpu:#008176;--host-user:#b22e28;--h
       <button data-tab="backends">Backends <span class="count" id="backend-count">0</span></button>
       <button data-tab="incidents">Incidentes <span class="count" id="incident-count">0</span></button>
       <button data-tab="logs">Auditoría <span class="count" id="log-count">0</span></button>
+      <button data-tab="notifications">Notificaciones <span class="count" id="notification-count">0</span></button>
     </nav>
 
 <section id="server-view" aria-label="Métricas del servidor">
@@ -620,6 +635,46 @@ html[data-theme="light"] #server-view{--host-cpu:#008176;--host-user:#b22e28;--h
       </div>
 <div class="pagination" id="logs-pages"></div>
     </section>
+
+    <section id="notifications" hidden>
+      <div class="section-heading">
+        <div>
+          <h2>Notificaciones (Telegram)</h2>
+          <span class="hint">Alertas automáticas de incidentes y pruebas despachadas hacia Telegram</span>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button type="button" id="open-test-notification" class="secondary"></button>
+          <button type="button" id="refresh-notifications"></button>
+        </div>
+      </div>
+
+      <div class="summary" id="notifications-summary">
+        <div><small>En cola (Pendientes / En envío)</small><strong id="notif-sum-queue">—</strong></div>
+        <div><small>Enviadas con éxito</small><strong id="notif-sum-sent" style="color:var(--teal)">—</strong></div>
+        <div><small>Fallidas / Expiradas</small><strong id="notif-sum-failed" style="color:var(--red-light)">—</strong></div>
+        <div><small>Pendiente más antiguo</small><strong id="notif-sum-oldest" style="font-size:16px">—</strong></div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Tipo</th>
+              <th>Backend / Incidente</th>
+              <th>Destino (Chat ID)</th>
+              <th>Estado</th>
+              <th>Intentos</th>
+              <th>Detalle / Error</th>
+            </tr>
+          </thead>
+          <tbody id="notification-rows">
+            <tr><td colspan="7" class="loading">Cargando notificaciones…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination" id="notifications-pages"></div>
+    </section>
   </div>
 
   <footer>
@@ -646,11 +701,87 @@ html[data-theme="light"] #server-view{--host-cpu:#008176;--host-user:#b22e28;--h
     </label>
     <label>Prefijos de ClientID<input name="authPrefixes" required placeholder="core_, device_"></label>
     <label>Prefijos de tópico<input name="aclPrefixes" required placeholder="v1/, telemetry/"></label>
-    <label class="full">API key<input name="apiKey" type="password" autocomplete="new-password" placeholder="Opcional">
-      <span id="key-hint" class="hint">Se envía en la cabecera X-EMQX-API-KEY.</span>
+    <label class="full" id="api-key-group">Clave API del backend (opcional)
+      <input name="apiKey" type="password" autocomplete="new-password" spellcheck="false" placeholder="Ingresa una clave para asignar o reemplazar" maxlength="4096" aria-describedby="key-hint">
+      <span id="key-hint" class="hint">Almacenada cifrada con AES-256-GCM. Deja este campo vacío para conservar la clave actual, o escribe una nueva para reemplazarla.</span>
     </label>
-    <label class="check full" id="clear-key-label" hidden><input name="clearKey" type="checkbox"> Eliminar API key actual</label>
+    <label class="check full" id="clear-key-label" hidden><input name="clearKey" type="checkbox"> Eliminar clave API configurada (dejar sin clave)</label>
     <label class="check full"><input name="enabled" type="checkbox" checked> Backend activo</label>
+
+    <!-- Sección de monitoreo por backend -->
+    <div class="full" style="margin-top:10px;border-top:1px solid var(--border);padding-top:12px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:4px">Monitoreo del backend (opcional)</div>
+      <p class="hint" style="margin-bottom:12px">Configura parámetros específicos o marca «Usar global» para heredar los valores del sistema.</p>
+
+      <div class="overrides-grid">
+        <div class="override-item">
+          <div class="override-head">
+            <label for="route-probe-interval">Intervalo de sondeo (s)</label>
+            <label class="check"><input type="checkbox" id="route-inherit-interval" name="inherit_probeIntervalSeconds"> Usar global</label>
+          </div>
+          <input id="route-probe-interval" name="probeIntervalSeconds" type="number" min="1" max="86400" placeholder="30">
+          <span class="hint" id="effective-interval-hint">Efectivo: 30 s</span>
+        </div>
+
+        <div class="override-item">
+          <div class="override-head">
+            <label for="route-probe-timeout">Timeout de sondeo (ms)</label>
+            <label class="check"><input type="checkbox" id="route-inherit-timeout" name="inherit_probeTimeoutMs"> Usar global</label>
+          </div>
+          <input id="route-probe-timeout" name="probeTimeoutMs" type="number" min="100" max="60000" placeholder="2000">
+          <span class="hint" id="effective-timeout-hint">Efectivo: 2000 ms</span>
+        </div>
+
+        <div class="override-item">
+          <div class="override-head">
+            <label for="route-failure-threshold">Umbral fallos (corte)</label>
+            <label class="check"><input type="checkbox" id="route-inherit-failure" name="inherit_failureThreshold"> Usar global</label>
+          </div>
+          <input id="route-failure-threshold" name="failureThreshold" type="number" min="1" max="100" placeholder="3">
+          <span class="hint" id="effective-failure-hint">Efectivo: 3 sondeos</span>
+        </div>
+
+        <div class="override-item">
+          <div class="override-head">
+            <label for="route-recovery-threshold">Umbral éxitos (recuperación)</label>
+            <label class="check"><input type="checkbox" id="route-inherit-recovery" name="inherit_recoveryThreshold"> Usar global</label>
+          </div>
+          <input id="route-recovery-threshold" name="recoveryThreshold" type="number" min="1" max="100" placeholder="2">
+          <span class="hint" id="effective-recovery-hint">Efectivo: 2 sondeos</span>
+        </div>
+      </div>
+
+      <div id="route-detection-estimate" class="hint" style="margin-top:10px;padding:8px 10px;background:var(--card);border:1px solid var(--border);border-radius:4px">
+        Estimación aproximada de detección: Caída: ~60 s – 96 s · Recuperación: ~30 s – 64 s
+      </div>
+    </div>
+
+    <!-- Sección de Telegram por backend -->
+    <div class="full" style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:4px">Notificaciones Telegram del backend</div>
+      <p class="hint" style="margin-bottom:10px">Configura la participación o destino específico de alertas para este backend.</p>
+
+      <div class="form-grid">
+        <label class="full">Participación en alertas
+          <select name="routeTelegramParticipation" id="route-telegram-participation">
+            <option value="inherit">Heredar global (Participa si el maestro global está activo)</option>
+            <option value="true">Habilitado explícitamente</option>
+            <option value="false">Excluido / Deshabilitado (No enviar alertas para este backend)</option>
+          </select>
+        </label>
+
+        <div class="full override-item" style="margin-top:6px">
+          <div class="override-head">
+            <label for="route-telegram-chatid">Chat ID específico para este backend</label>
+            <label class="check"><input type="checkbox" id="route-inherit-chatid" name="inherit_telegramChatId"> Usar destino global</label>
+          </div>
+          <input id="route-telegram-chatid" name="routeTelegramChatId" placeholder="Ej. -100987654321">
+        </div>
+      </div>
+      <div id="route-telegram-effective-hint" class="hint" style="margin-top:8px">
+        <strong>Estado efectivo:</strong> Deshabilitado · <strong>Destino:</strong> Ninguno
+      </div>
+    </div>
   </div>
 
   <div class="modal-notice">
@@ -661,6 +792,107 @@ html[data-theme="light"] #server-view{--host-cpu:#008176;--host-user:#b22e28;--h
   <div class="form-actions">
     <button type="button" id="cancel-dialog">Cancelar</button>
     <button class="primary" type="submit">Guardar backend</button>
+  </div>
+</form>
+</dialog>
+
+<!-- Dialog: Global Monitoring Settings -->
+<dialog id="settings-dialog" aria-labelledby="settings-dialog-title">
+<form id="settings-form">
+  <div class="dialog-head">
+    <h2 id="settings-dialog-title">Ajustes globales (Monitoreo y Telegram)</h2>
+    <button type="button" id="close-settings-dialog" aria-label="Cerrar"></button>
+  </div>
+  <p>Configuración general de sondeo de disponibilidad y notificaciones. Los cambios se guardan y aplican de forma inmediata sin reiniciar el servicio.</p>
+
+  <div class="form-grid">
+    <label class="full">Intervalo de sondeo (segundos)
+      <input name="probeIntervalSeconds" type="number" min="1" max="86400" required placeholder="30" aria-describedby="settings-interval-hint">
+      <span id="settings-interval-hint" class="hint">Frecuencia de sondeo en segundos (1 a 86 400 s). El siguiente sondeo comienza cuando termina el anterior y transcurre este intervalo.</span>
+    </label>
+
+    <label class="full">Timeout de sondeo (milisegundos)
+      <input name="probeTimeoutMs" type="number" min="100" max="60000" required placeholder="2000" aria-describedby="settings-timeout-hint">
+      <span id="settings-timeout-hint" class="hint">Tiempo máximo de espera por sondeo (100 a 60 000 ms). Debe ser menor al intervalo de sondeo.</span>
+    </label>
+
+    <label>Umbral de fallos para corte
+      <input name="failureThreshold" type="number" min="1" max="100" required placeholder="3" aria-describedby="settings-failure-hint">
+      <span id="settings-failure-hint" class="hint">Sondeos fallidos consecutivos para abrir incidente (1 a 100).</span>
+    </label>
+
+    <label>Umbral de éxitos para recuperación
+      <input name="recoveryThreshold" type="number" min="1" max="100" required placeholder="2" aria-describedby="settings-recovery-hint">
+      <span id="settings-recovery-hint" class="hint">Sondeos exitosos consecutivos para cerrar incidente (1 a 100).</span>
+    </label>
+
+    <div id="settings-detection-estimate" class="full hint" style="padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:4px">
+      Estimación global de detección: Caída: ~60 s – 96 s · Recuperación: ~30 s – 64 s
+    </div>
+
+    <!-- Sección global de Telegram -->
+    <div class="full" style="margin-top:14px;border-top:1px solid var(--border);padding-top:14px">
+      <div style="font-size:14px;font-weight:600;margin-bottom:4px">Notificaciones por Telegram</div>
+      <p class="hint" style="margin-bottom:12px">Alertas automáticas en aperturas y recuperaciones de incidentes hacia Telegram.</p>
+
+      <label class="check full">
+        <input name="telegramEnabled" type="checkbox" id="settings-telegram-enabled">
+        <strong>Habilitar notificaciones por Telegram (Interruptor maestro)</strong>
+      </label>
+
+      <label class="full" style="margin-top:10px">
+        Chat ID predeterminado (Destino global)
+        <input name="telegramChatId" id="settings-telegram-chatid" placeholder="Ej. -1001234567890 o 123456789" aria-describedby="settings-chatid-hint">
+        <span id="settings-chatid-hint" class="hint">Identificador de grupo, canal o usuario de Telegram donde se enviarán las alertas por defecto.</span>
+      </label>
+
+      <label class="full" style="margin-top:10px" id="settings-telegram-token-group">
+        Token del Bot de Telegram (BotFather)
+        <input name="telegramBotToken" id="settings-telegram-bot-token" type="password" autocomplete="new-password" spellcheck="false" placeholder="Ingresa el token para asignar o reemplazar" maxlength="4096" aria-describedby="settings-telegram-token-hint">
+        <span id="settings-telegram-token-hint" class="hint">Almacenado cifrado con AES-256-GCM. Deja este campo vacío para conservar el token actual, o escribe uno nuevo para reemplazarlo.</span>
+      </label>
+      <label class="check full" id="clear-telegram-token-label" hidden style="margin-top:4px">
+        <input name="clearTelegramToken" type="checkbox" id="clear-telegram-token-checkbox"> Eliminar token del bot configurado
+      </label>
+
+      <div id="settings-telegram-token-status" style="margin-top:10px"></div>
+    </div>
+  </div>
+
+  <div id="settings-form-error" class="message" role="alert" hidden style="margin-top:14px"></div>
+
+  <div class="form-actions">
+    <button type="button" id="cancel-settings-dialog">Cancelar</button>
+    <button class="primary" type="submit">Guardar ajustes</button>
+  </div>
+</form>
+</dialog>
+
+<!-- Dialog: Test Telegram Notification -->
+<dialog id="test-notification-dialog" aria-labelledby="test-notif-title">
+<form id="test-notification-form">
+  <div class="dialog-head">
+    <h2 id="test-notif-title">Probar notificación de Telegram</h2>
+    <button type="button" id="close-test-notif-dialog" aria-label="Cerrar"></button>
+  </div>
+  <p>Encola un mensaje de prueba al destino ya configurado para verificar la conectividad con Telegram. La respuesta confirma el encolado; el envío real se procesa en segundo plano.</p>
+
+  <div class="form-grid">
+    <label class="full">Canal / Destino a probar
+      <select id="test-notif-target" name="backendId" aria-describedby="test-notif-hint">
+      </select>
+      <span id="test-notif-hint" class="hint">Solo se pueden probar destinos configurados con token y alertas habilitadas.</span>
+    </label>
+  </div>
+
+  <div id="test-notif-status" class="hint" style="margin-top:12px;padding:8px 12px;background:var(--card);border:1px solid var(--border);border-radius:4px">
+  </div>
+
+  <div id="test-notif-error" class="message" role="alert" hidden style="margin-top:14px"></div>
+
+  <div class="form-actions">
+    <button type="button" id="cancel-test-notif-dialog">Cancelar</button>
+    <button class="primary" type="submit" id="submit-test-notif">Encolar prueba</button>
   </div>
 </form>
 </dialog>
@@ -704,15 +936,75 @@ const icons = {
   moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
   system: '<rect width="20" height="14" x="2" y="3" rx="2"/><path d="M8 21h8M12 17v4"/>',
   chart: '<path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>',
-  back: '<path d="m15 18-6-6 6-6"/>'
+  back: '<path d="m15 18-6-6 6-6"/>',
+  bell: '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
+  send: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
+  settings: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>'
 };
 const icon = n => '<svg viewBox="0 0 24 24" aria-hidden="true">' + (icons[n] || '') + '</svg>';
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmt = v => v == null ? '—' : Number(v).toFixed(1);
 const date = v => v ? new Date(v).toLocaleString('es-PE') : 'En curso';
 const duration = v => v < 60000 ? Math.round(v / 1000) + ' s' : v < 3600000 ? (v / 60000).toFixed(1) + ' min' : (v / 3600000).toFixed(1) + ' h';
-const statusClass = s => s === 'Normal' ? 'good' : s === 'Slow' || s === 'Degraded' ? 'warn' : s === 'Offline' ? 'bad' : 'neutral';
+const statusClass = s => s === 'Normal' || s === 'Online' ? 'good' : s === 'Slow' || s === 'Degraded' ? 'warn' : s === 'Offline' ? 'bad' : 'neutral';
 const badge = (s, cl) => '<span class="badge ' + cl + '"><span class="dot"></span>' + esc(s) + '</span>';
+
+/* ponytail: helpers F2/F3 para monitoreo configurable, detección y Telegram */
+let globalSettings = null;
+
+function getEffectiveMonitoring(route) {
+  if (route?.effectiveMonitoring) return route.effectiveMonitoring;
+  const gm = globalSettings?.monitoring || { probeIntervalSeconds: 30, probeTimeoutMs: 2000, failureThreshold: 3, recoveryThreshold: 2 };
+  const rm = route?.monitoring || {};
+  return {
+    probeIntervalSeconds: rm.probeIntervalSeconds != null ? Number(rm.probeIntervalSeconds) : gm.probeIntervalSeconds,
+    probeTimeoutMs: rm.probeTimeoutMs != null ? Number(rm.probeTimeoutMs) : gm.probeTimeoutMs,
+    failureThreshold: rm.failureThreshold != null ? Number(rm.failureThreshold) : gm.failureThreshold,
+    recoveryThreshold: rm.recoveryThreshold != null ? Number(rm.recoveryThreshold) : gm.recoveryThreshold
+  };
+}
+
+function getEffectiveTelegram(route) {
+  if (route?.effectiveTelegram) return route.effectiveTelegram;
+  const gt = globalSettings?.telegram || { enabled: false, chatId: null, tokenConfigured: false };
+  const rt = route?.telegram || {};
+  const isExcluded = rt.enabled === false;
+  const isMasterEnabled = Boolean(gt.enabled);
+  const enabled = isExcluded ? false : (isMasterEnabled && (rt.enabled === true || rt.enabled == null));
+  const chatId = rt.chatId != null ? rt.chatId : gt.chatId;
+  return { enabled, chatId };
+}
+
+function estimateDetection(intervalSec, timeoutMs, threshold) {
+  const t = Number(threshold) || 1;
+  const i = Number(intervalSec) || 30;
+  const to = Number(timeoutMs) || 0;
+  const minSec = Math.max(0, (t - 1) * i);
+  const maxSec = t * (i + to / 1000);
+  const fmtSec = s => s < 60 ? Math.round(s) + ' s' : s < 3600 ? (s / 60).toFixed(1) + ' min' : (s / 3600).toFixed(1) + ' h';
+  if (Math.abs(maxSec - minSec) < 0.5) return '~' + fmtSec(minSec);
+  return '~' + fmtSec(minSec) + ' – ' + fmtSec(maxSec);
+}
+
+function getMonitoringBadges(m, eff) {
+  if (!m) return '';
+  const parts = [];
+  if (m.awaitingObservation) {
+    parts.push('<span class="badge neutral" title="Pendiente de la primera observación tras reinicio o cambio de política"><span class="dot"></span>Observación pendiente</span>');
+  } else if (m.status === 'Unknown' && !m.pendingState) {
+    parts.push('<span class="badge neutral" title="Estado sin confirmar por sondeo"><span class="dot"></span>Sin confirmar</span>');
+  }
+  if (m.pendingState === 'failure') {
+    const cur = m.consecutiveFailures || 0;
+    const max = eff?.failureThreshold || 3;
+    parts.push('<span class="badge warn" title="Fallo en observación: ' + cur + ' de ' + max + ' sondeos fallidos consecutivos"><span class="dot"></span>Fallo pendiente (' + cur + '/' + max + ')</span>');
+  } else if (m.pendingState === 'recovery') {
+    const cur = m.consecutiveSuccesses || 0;
+    const max = eff?.recoveryThreshold || 2;
+    parts.push('<span class="badge good" title="Recuperación en observación: ' + cur + ' de ' + max + ' sondeos exitosos consecutivos"><span class="dot"></span>Recuperando (' + cur + '/' + max + ')</span>');
+  }
+  return parts.join(' ');
+}
 
 /* Token management */
 function storedToken() {
@@ -730,6 +1022,7 @@ function storedToken() {
 
 /* Global state variables defined before any call */
 let token = storedToken(), routes = [], metrics = [], incidents = [], logs = [];
+let notifications = [], notifTotal = 0, notifSummary = null, notifOffset = 0, notifLimit = 25;
 let editing = null, deleting = null, refreshing = false, loggedIn = false;
 let activeDetailId = null;
 let viewMode = localStorage.getItem('gateway_view_mode') === 'table' ? 'table' : 'cards';
@@ -760,6 +1053,10 @@ function paged(items, key) {
     '<button type="button" data-page="' + key + '" data-step="1" ' + (state.page === total ? 'disabled' : '') + '>Siguiente</button>';
   return items.slice((state.page - 1) * state.size, state.page * state.size);
 }
+// ponytail: estado accesible de clave API según contrato de secretos administrados (hasApiKey).
+function hasBackendApiKey(r) {
+  return Boolean(r && r.hasApiKey);
+}
 function renderView() {
   $('#cards').hidden = viewMode !== 'cards';
   $('#routes-table-view').hidden = viewMode !== 'table';
@@ -767,7 +1064,21 @@ function renderView() {
   $('#view-table').setAttribute('aria-pressed', String(viewMode === 'table'));
   $('#route-rows').innerHTML = paged(routes, 'routes').map(r => {
     const m = metrics.find(x => x.id === r.id) || {status:'Unknown'};
-    return '<tr><td><button class="table-name" data-action="detail" data-id="' + esc(r.id) + '">' + esc(r.name) + '</button></td><td>' + badge(m.status, statusClass(m.status)) + '</td>' +
+    const eff = getEffectiveMonitoring(r);
+    const effTel = getEffectiveTelegram(r);
+    const hasKey = hasBackendApiKey(r);
+    const keyTag = hasKey
+      ? '<br><span class="badge neutral" style="font-size:11px;margin-top:2px" title="Clave API cifrada con AES-256-GCM"><span class="dot" style="background:var(--accent)"></span>Con clave</span>'
+      : '';
+    const monBadges = getMonitoringBadges(m, eff);
+    const monTag = monBadges ? '<br>' + monBadges : '';
+    let telTag = '';
+    if (effTel.enabled && effTel.chatId) {
+      telTag = '<br><span class="badge neutral" style="font-size:11px;margin-top:2px" title="Telegram activo (Chat ID: ' + esc(effTel.chatId) + ')"><span class="dot" style="background:#2AABEE"></span>Telegram</span>';
+    } else if (r.telegram?.enabled === false) {
+      telTag = '<br><span class="badge neutral" style="font-size:11px;opacity:0.7;margin-top:2px" title="Telegram excluido"><span class="dot"></span>Sin Telegram</span>';
+    }
+    return '<tr><td><button class="table-name" data-action="detail" data-id="' + esc(r.id) + '">' + esc(r.name) + '</button>' + keyTag + '</td><td>' + badge(m.status, statusClass(m.status)) + monTag + telTag + '</td>' +
       '<td>' + r.authPrefixes.map(esc).join(', ') + '</td><td>' + r.aclPrefixes.map(esc).join(', ') + '</td><td><span class="route-health technical" title="' + esc(r.healthUrl || '') + '">' + esc(r.healthUrl || 'Sin endpoint') + '</span></td><td><div class="card-menu">' +
       [['test','Probar conexión','pulse'],['pause',r.enabled?'Pausar':'Reanudar',r.enabled?'pause':'play'],['edit','Editar','edit'],['delete','Eliminar','trash']].map(([action,label,symbol]) => '<button type="button" data-action="' + action + '" data-id="' + esc(r.id) + '" title="' + label + '" aria-label="' + label + ' ' + esc(r.name) + '" ' + (action==='test' && !r.enabled ? 'disabled' : '') + (action==='delete' ? ' class="danger"' : '') + '>' + icon(symbol) + '</button>').join('') + '</div></td></tr>';
   }).join('') || '<tr><td colspan="6" class="empty">No hay backends registrados.</td></tr>';
@@ -781,9 +1092,25 @@ function probeToast(route, result) {
   clearTimeout(toastTimer); clearTimeout(toastCloseTimer);
   const code = Number(result.httpStatus) || 0;
   $('#toast-name').textContent = route.name;
-  $('#toast-http').innerHTML = badge(code ? 'HTTP ' + code : 'Sin respuesta HTTP', code >= 200 && code < 400 ? 'good' : code >= 400 && code < 500 ? 'warn' : 'bad');
-  $('#toast-latency').textContent = Number.isFinite(result.latencyMs) ? fmt(result.latencyMs) + ' ms' : 'Latencia no disponible';
-  $('#toast-message').textContent = code >= 400 && code < 500 ? 'Servicio accesible; revisa la URL o los permisos del sondeo.' : result.online ? 'El servicio respondió al sondeo.' : 'No se pudo completar el sondeo. ' + (result.reason || 'Comprueba la disponibilidad del servicio.');
+  if (result.isNotificationTest) {
+    if (result.status === 'not_enqueued') {
+      $('#toast-http').innerHTML = badge('Cola llena', 'warn');
+      $('#toast-latency').textContent = 'No encolada';
+      $('#toast-message').textContent = result.reason || 'No encolada por cola llena: la capacidad máxima es de 10 000 mensajes.';
+    } else {
+      $('#toast-http').innerHTML = badge('Encolada', 'good');
+      $('#toast-latency').textContent = 'Segundo plano';
+      $('#toast-message').textContent = result.reason || 'Notificación de prueba encolada para envío en segundo plano.';
+    }
+  } else if (code === 409) {
+    $('#toast-http').innerHTML = badge('HTTP 409 (Ocupado)', 'warn');
+    $('#toast-latency').textContent = 'Sondeo en curso';
+    $('#toast-message').textContent = 'Ya se está ejecutando un sondeo activo (automático o manual) para este backend. No se solapan sondeos.';
+  } else {
+    $('#toast-http').innerHTML = badge(code ? 'HTTP ' + code : 'Sin respuesta HTTP', code >= 200 && code < 400 ? 'good' : code >= 400 && code < 500 ? 'warn' : 'bad');
+    $('#toast-latency').textContent = Number.isFinite(result.latencyMs) ? fmt(result.latencyMs) + ' ms' : 'Latencia no disponible';
+    $('#toast-message').textContent = code >= 400 && code < 500 ? 'Servicio accesible; revisa la URL o los permisos del sondeo.' : result.online ? 'El servicio respondió al sondeo.' : 'No se pudo completar el sondeo. ' + (result.reason || 'Comprueba la disponibilidad del servicio.');
+  }
   $('#probe-toast').classList.remove('is-closing');
   $('#probe-toast').hidden = false;
   toastTimer = setTimeout(closeToast, 5000);
@@ -940,7 +1267,12 @@ applyTheme(currentTheme);
 
 $('#refresh').innerHTML = icon('refresh') + 'Actualizar';
 $('#register').innerHTML = icon('plus') + 'Registrar backend';
+$('#open-settings-btn').innerHTML = icon('settings') + 'Ajustes';
+$('#open-test-notification').innerHTML = icon('send') + 'Probar notificación';
+$('#refresh-notifications').innerHTML = icon('refresh') + 'Actualizar';
 $('#close-dialog').innerHTML = icon('close');
+$('#close-settings-dialog').innerHTML = icon('close');
+$('#close-test-notif-dialog').innerHTML = icon('close');
 $('#clear-logs').innerHTML = icon('trash') + 'Limpiar logs';
 $('#back-btn').innerHTML = icon('back') + 'Backends';
 $('#det-test').innerHTML = icon('pulse') + 'Probar conexión';
@@ -964,7 +1296,10 @@ async function api(path, options = {}) {
   const body = response.status === 204 ? null : await response.json().catch(() => ({ error: 'Respuesta inválida del servidor' }));
   if (!response.ok) {
     if (response.status === 401 || (response.status === 403 && !options.headers?.['X-Admin-Password'])) showLogin();
-    throw new Error(body?.error || ('La operación falló (HTTP ' + response.status + ')'));
+    const err = new Error(body?.error || ('La operación falló (HTTP ' + response.status + ')'));
+    err.status = response.status;
+    err.body = body;
+    throw err;
   }
   return body;
 }
@@ -1002,6 +1337,7 @@ async function enter(candidate) {
   loggedIn = true;
   $('#password').value = '';
   await refresh();
+  fetchNotifications();
   if (document.querySelector('#main-nav button.active')?.dataset.tab === 'server-view') {
     renderHost();
     if (!hostData) refreshHost();
@@ -1010,20 +1346,33 @@ async function enter(candidate) {
 
 function applySnapshot(data) {
   if (!data) return;
+  if ($('#route-dialog').open || $('#settings-dialog')?.open || $('#test-notification-dialog')?.open || $('#delete-confirm-dialog').open) return;
   if (Array.isArray(data.routes)) routes = data.routes;
   if (Array.isArray(data.metrics)) metrics = data.metrics;
   if (Array.isArray(data.incidents)) incidents = data.incidents;
   if (Array.isArray(data.logs)) logs = data.logs;
+  if (data.settings?.monitoring || data.settings?.telegram) {
+    globalSettings = { ...globalSettings, ...data.settings };
+  }
   render();
   $('#updated').textContent = 'Actualizado ' + new Date().toLocaleTimeString('es-PE');
 }
 
 async function refresh() {
-  if (!loggedIn || refreshing || document.hidden || document.querySelector('[aria-busy="true"]') || $('#route-dialog').open || $('#delete-confirm-dialog').open) return;
+  if (!loggedIn || refreshing || document.hidden || document.querySelector('[aria-busy="true"]') || $('#route-dialog').open || $('#delete-confirm-dialog').open || $('#settings-dialog')?.open || $('#test-notification-dialog')?.open) return;
   refreshing = true;
   try {
-    const [r, m, i, l] = await Promise.all(['/routes', '/metrics', '/incidents', '/logs'].map(p => api(p)));
-    applySnapshot({ routes: r, metrics: m, incidents: i, logs: l });
+    const [r, m, i, l, s] = await Promise.all([
+      api('/routes'),
+      api('/metrics'),
+      api('/incidents'),
+      api('/logs'),
+      api('/settings')
+    ]);
+    applySnapshot({ routes: r, metrics: m, incidents: i, logs: l, settings: s });
+    if (document.querySelector('#main-nav button.active')?.dataset.tab === 'notifications') {
+      await fetchNotifications();
+    }
   } catch (e) {
     notice(e.message);
   } finally {
@@ -1035,6 +1384,7 @@ function render() {
   $('#backend-count').textContent = routes.length;
   $('#incident-count').textContent = incidents.length;
   $('#log-count').textContent = logs.length;
+  $('#notification-count').textContent = notifTotal || 0;
 
   const active = metrics.filter(m => !['Paused', 'Unknown', 'Offline'].includes(m.status)).length;
   $('#online').textContent = active + ' / ' + routes.length;
@@ -1047,7 +1397,20 @@ function render() {
   /* Render cards */
   $('#cards').innerHTML = (viewMode === 'cards' ? routes : []).map(r => {
     const m = metrics.find(x => x.id === r.id) || { status: 'Unknown', count: 0 };
+    const eff = getEffectiveMonitoring(r);
+    const effTel = getEffectiveTelegram(r);
     const cl = statusClass(m.status);
+    const hasKey = hasBackendApiKey(r);
+    const keyBadge = hasKey
+      ? '<span class="badge neutral" style="font-size:11px" title="Clave API cifrada con AES-256-GCM"><span class="dot" style="background:var(--accent)"></span>Con clave</span>'
+      : '';
+    let telBadge = '';
+    if (effTel.enabled && effTel.chatId) {
+      telBadge = '<span class="badge neutral" style="font-size:11px" title="Alertas Telegram activas (Chat ID: ' + esc(effTel.chatId) + ')"><span class="dot" style="background:#2AABEE"></span>Telegram</span>';
+    } else if (r.telegram?.enabled === false) {
+      telBadge = '<span class="badge neutral" style="font-size:11px;opacity:0.7" title="Alertas Telegram excluidas"><span class="dot"></span>Sin Telegram</span>';
+    }
+    const monBadges = getMonitoringBadges(m, eff);
     return '<article class="card ' + (m.status === 'Offline' ? 'offline' : '') + '">' +
       '<div class="card-head">' +
         '<div>' +
@@ -1056,7 +1419,12 @@ function render() {
           '</h2>' +
           '<div class="endpoint">' + esc(r.authUrl) + '</div>' +
         '</div>' +
-        badge(m.status, cl) +
+        '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">' +
+          badge(m.status, cl) +
+          (monBadges ? '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">' + monBadges + '</div>' : '') +
+          keyBadge +
+          telBadge +
+        '</div>' +
       '</div>' +
       '<div class="latency">' +
         '<div><span class="hint">Última llamada</span><br><strong class="' + cl + '">' + (m.count ? fmt(m.currentMs) : '—') + ' <small>ms</small></strong></div>' +
@@ -1070,7 +1438,7 @@ function render() {
       '<div class="uptime">' +
         '<div class="uptime-line"><span>Uptime observado</span><span class="technical ' + cl + '">' + (m.uptimePercent == null ? 'Sin intervalos' : fmt(m.uptimePercent) + ' %') + '</span></div>' +
         '<div class="bar"><span style="width:' + Math.max(0, Math.min(100, m.uptimePercent || 0)) + '%"></span></div>' +
-        '<div class="hint">Sondeo: <span class="technical">' + (m.probeMs == null ? '—' : fmt(m.probeMs) + ' ms') + '</span> / HTTP ' + (m.probeHttpStatus || '—') + '</div>' +
+        '<div class="hint">Sondeo: <span class="technical">' + (m.probeMs == null ? '—' : fmt(m.probeMs) + ' ms') + '</span> / HTTP ' + (m.probeHttpStatus || '—') + ' · <span class="technical" title="Intervalo y timeout efectivos">' + eff.probeIntervalSeconds + 's / ' + eff.probeTimeoutMs + 'ms</span></div>' +
         '<div class="prefixes">' + [...r.authPrefixes, ...r.aclPrefixes].map(v => '<span class="prefix">' + esc(v) + '</span>').join('') + '</div>' +
       '</div>' +
       '<div class="card-footer">' +
@@ -1134,7 +1502,7 @@ function closeDetail() {
   $('#backend-detail').hidden = true;
   $('#main-view-container').hidden = false;
   const activeTab = document.querySelector('#main-nav button.active')?.dataset.tab || 'server-view';
-  for (const id of ['backends', 'incidents', 'logs', 'server-view']) $('#' + id).hidden = id !== activeTab;
+  for (const id of ['backends', 'incidents', 'logs', 'server-view', 'notifications']) $('#' + id).hidden = id !== activeTab;
 }
 
 $('#back-btn').onclick = closeDetail;
@@ -1147,9 +1515,11 @@ function renderDetail() {
   if (rangeMinutes && !m.probeHistory.length) m.probeMs = null;
   const cl = statusClass(m.status);
 
+  const eff = getEffectiveMonitoring(r);
+  const monBadges = getMonitoringBadges(m, eff);
   $('#det-bc-title').textContent = r.name;
   $('#det-name').textContent = r.name;
-  $('#det-badge').innerHTML = badge(m.status, cl);
+  $('#det-badge').innerHTML = badge(m.status, cl) + (monBadges ? ' ' + monBadges : '');
 
   let lastProbeTxt = 'Sin sondeos registrados aún';
   if (m.lastProbe) {
@@ -1162,6 +1532,7 @@ function renderDetail() {
 
   /* Action buttons */
   $('#det-toggle').innerHTML = icon(r.enabled ? 'pause' : 'play') + (r.enabled ? 'Pausar' : 'Activar');
+  $('#det-toggle').title = r.enabled ? 'Pausar backend' : 'Activar backend';
   $('#det-toggle').onclick = async () => {
     try {
       await api('/routes/' + encodeURIComponent(r.id), { method: 'PUT', body: JSON.stringify({ ...r, enabled: !r.enabled }) });
@@ -1194,7 +1565,47 @@ function renderDetail() {
   $('#det-spec-health').title = r.healthUrl || '';
   $('#det-spec-auth-pref').innerHTML = r.authPrefixes.map(p => '<span class="prefix">' + esc(p) + '</span>').join('');
   $('#det-spec-acl-pref').innerHTML = r.aclPrefixes.map(p => '<span class="prefix">' + esc(p) + '</span>').join('');
-  $('#det-spec-key').textContent = r.hasApiKey ? 'Configurada (X-EMQX-API-KEY)' : 'Sin autenticación por clave';
+
+  // ponytail: especificación accesible de apiKey en vista de detalle
+  if (r.hasApiKey) {
+    $('#det-spec-key').innerHTML = '<span class="badge good" role="status" aria-label="Clave configurada"><span class="dot"></span>Configurada</span> ' +
+      '<span class="hint">(cifrada en base de datos con AES-256-GCM)</span>';
+  } else {
+    $('#det-spec-key').textContent = 'Sin clave configurada';
+  }
+
+  // ponytail: especificación de Telegram F3 con herencia y destino
+  const effTel = getEffectiveTelegram(r);
+  const telStatusBadge = effTel.enabled
+    ? '<span class="badge good"><span class="dot"></span>Habilitado</span>'
+    : '<span class="badge neutral"><span class="dot"></span>Deshabilitado</span>';
+  const telDest = effTel.chatId ? ' · Chat ID: <span class="technical">' + esc(effTel.chatId) + '</span>' : ' · Sin destino';
+  const telInherit = (r.telegram?.enabled == null && r.telegram?.chatId == null)
+    ? ' <span class="hint">(heredado del global)</span>'
+    : ' <span class="hint">(personalizado)</span>';
+  $('#det-spec-telegram').innerHTML = telStatusBadge + telDest + telInherit;
+
+  // ponytail: especificaciones de monitoreo F2 y cálculo de estimación
+  $('#det-spec-interval').innerHTML = '<strong>' + eff.probeIntervalSeconds + ' s</strong>' + (r.monitoring?.probeIntervalSeconds != null ? ' <span class="badge neutral" style="font-size:11px">Personalizado</span>' : ' <span class="hint">(global)</span>');
+  $('#det-spec-timeout').innerHTML = '<strong>' + eff.probeTimeoutMs + ' ms</strong>' + (r.monitoring?.probeTimeoutMs != null ? ' <span class="badge neutral" style="font-size:11px">Personalizado</span>' : ' <span class="hint">(global)</span>');
+  $('#det-spec-thresholds').innerHTML = '<strong>' + eff.failureThreshold + '</strong> fallos (corte) / <strong>' + eff.recoveryThreshold + '</strong> éxitos (recuperación)' + ((r.monitoring?.failureThreshold != null || r.monitoring?.recoveryThreshold != null) ? ' <span class="badge neutral" style="font-size:11px">Personalizado</span>' : ' <span class="hint">(global)</span>');
+  $('#det-spec-estimate').textContent = 'Caída: ' + estimateDetection(eff.probeIntervalSeconds, eff.probeTimeoutMs, eff.failureThreshold) + ' · Recuperación: ' + estimateDetection(eff.probeIntervalSeconds, eff.probeTimeoutMs, eff.recoveryThreshold);
+
+  let obsTxt = 'Normal (confirmado por sondeos automáticos)';
+  if (!r.enabled) {
+    obsTxt = 'Pausado (no recibe sondeos ni tráfico)';
+  } else if (m.awaitingObservation) {
+    obsTxt = 'Pendiente de primera observación tras reinicio o cambio de política';
+  } else if (m.pendingState === 'failure') {
+    obsTxt = 'Alerta en curso: ' + (m.consecutiveFailures || 0) + ' de ' + eff.failureThreshold + ' fallos consecutivos (corte no confirmado aún)';
+  } else if (m.pendingState === 'recovery') {
+    obsTxt = 'Recuperación en curso: ' + (m.consecutiveSuccesses || 0) + ' de ' + eff.recoveryThreshold + ' éxitos consecutivos (recuperación no confirmada aún)';
+  } else if (m.status === 'Offline') {
+    obsTxt = 'Caída confirmada (incidente abierto)';
+  } else if (m.status === 'Unknown') {
+    obsTxt = 'Estado sin confirmar';
+  }
+  $('#det-spec-pending').textContent = obsTxt;
 
   /* Duration Trends (Chart.js Cloudflare/shadcn style) */
   renderChart(m);
@@ -1493,16 +1904,347 @@ function openEditor(route = null) {
   f.reset();
   $('#dialog-title').textContent = route ? 'Editar backend' : 'Registrar backend';
   $('#form-error').hidden = true;
-  $('#clear-key-label').hidden = !route?.hasApiKey;
   for (const key of ['name', 'authUrl', 'aclUrl', 'healthUrl']) f.elements[key].value = route?.[key] || '';
   for (const key of ['authPrefixes', 'aclPrefixes']) f.elements[key].value = route?.[key]?.join(', ') || '';
   f.elements.enabled.checked = route ? route.enabled : true;
-  $('#key-hint').textContent = route?.hasApiKey ? 'Deja vacío para conservar la clave actual.' : 'Se envía en la cabecera X-EMQX-API-KEY.';
+
+  // ponytail: gestión segura de clave API (write-only, cifrada en SQLite)
+  f.elements.apiKey.value = '';
+  f.elements.clearKey.checked = false;
+  f.elements.apiKey.disabled = false;
+
+  if (route?.hasApiKey) {
+    $('#clear-key-label').hidden = false;
+    f.elements.apiKey.placeholder = 'Clave cifrada configurada (deja vacío para conservar)';
+    $('#key-hint').textContent = '✔ Este backend tiene una clave API cifrada con AES-256-GCM. Deja este campo vacío para conservarla intacta, o escribe una nueva para reemplazarla.';
+  } else if (route) {
+    $('#clear-key-label').hidden = true;
+    f.elements.apiKey.placeholder = 'Nueva clave API (opcional)';
+    $('#key-hint').textContent = 'Este backend no tiene clave API configurada. Deja este campo vacío para continuar sin clave, o escribe una para asignarla.';
+  } else {
+    $('#clear-key-label').hidden = true;
+    f.elements.apiKey.placeholder = 'Nueva clave API (opcional)';
+    $('#key-hint').textContent = 'Opcional. Se almacenará cifrada con AES-256-GCM en base de datos y se enviará en las solicitudes HTTP del backend.';
+  }
+
+  // ponytail: monitoreo F2 en editor de ruta con herencia y valores globales visibles
+  const gm = globalSettings?.monitoring || { probeIntervalSeconds: 30, probeTimeoutMs: 2000, failureThreshold: 3, recoveryThreshold: 2 };
+  for (const k of ['probeIntervalSeconds', 'probeTimeoutMs', 'failureThreshold', 'recoveryThreshold']) {
+    const hasOverride = route?.monitoring && route.monitoring[k] != null;
+    f.elements['inherit_' + k].checked = !hasOverride;
+    f.elements[k].disabled = !hasOverride;
+    f.elements[k].value = hasOverride ? route.monitoring[k] : '';
+    f.elements[k].placeholder = String(gm[k] || '');
+  }
+  updateRouteMonitoringEstimate();
+
+  // ponytail: Telegram F3 en editor de ruta con herencia y destino
+  const rt = route?.telegram || {};
+  if (rt.enabled === true) f.elements.routeTelegramParticipation.value = 'true';
+  else if (rt.enabled === false) f.elements.routeTelegramParticipation.value = 'false';
+  else f.elements.routeTelegramParticipation.value = 'inherit';
+
+  const hasCustomChat = rt.chatId != null;
+  f.elements.inherit_telegramChatId.checked = !hasCustomChat;
+  f.elements.routeTelegramChatId.disabled = !hasCustomChat;
+  f.elements.routeTelegramChatId.value = hasCustomChat ? rt.chatId : '';
+  f.elements.routeTelegramChatId.placeholder = globalSettings?.telegram?.chatId || 'Hereda destino global (no configurado)';
+  updateRouteTelegramEstimate();
+
   $('#route-dialog').showModal();
 }
 
+function updateRouteTelegramEstimate() {
+  const f = $('#route-form');
+  const part = f.elements.routeTelegramParticipation.value;
+  const inheritChat = f.elements.inherit_telegramChatId.checked;
+  const customChat = f.elements.routeTelegramChatId.value.trim();
+  const gt = globalSettings?.telegram || { enabled: false, chatId: null, tokenConfigured: false };
+
+  let statusTxt = '';
+  if (part === 'false') {
+    statusTxt = 'Excluido explícitamente (No enviará alertas)';
+  } else if (part === 'true') {
+    statusTxt = gt.enabled ? 'Habilitado (Participa)' : 'Suspendido (Master global apagado)';
+  } else {
+    statusTxt = gt.enabled ? 'Habilitado (Hereda global activo)' : 'Deshabilitado (Hereda global apagado)';
+  }
+
+  let chatTxt = '';
+  if (!inheritChat) {
+    chatTxt = customChat ? 'Chat ID: ' + esc(customChat) : 'Sin Chat ID personalizado';
+  } else {
+    chatTxt = gt.chatId ? 'Hereda Chat ID global: ' + esc(gt.chatId) : 'Sin destino (global no definido)';
+  }
+
+  $('#route-telegram-effective-hint').innerHTML = '<strong>Estado efectivo:</strong> ' + statusTxt + ' · <strong>Destino:</strong> ' + chatTxt;
+}
+
+function updateRouteMonitoringEstimate() {
+  const f = $('#route-form');
+  const gm = globalSettings?.monitoring || { probeIntervalSeconds: 30, probeTimeoutMs: 2000, failureThreshold: 3, recoveryThreshold: 2 };
+  const i = f.elements.inherit_probeIntervalSeconds.checked ? gm.probeIntervalSeconds : (Number(f.elements.probeIntervalSeconds.value) || gm.probeIntervalSeconds);
+  const to = f.elements.inherit_probeTimeoutMs.checked ? gm.probeTimeoutMs : (Number(f.elements.probeTimeoutMs.value) || gm.probeTimeoutMs);
+  const fail = f.elements.inherit_failureThreshold.checked ? gm.failureThreshold : (Number(f.elements.failureThreshold.value) || gm.failureThreshold);
+  const rec = f.elements.inherit_recoveryThreshold.checked ? gm.recoveryThreshold : (Number(f.elements.recoveryThreshold.value) || gm.recoveryThreshold);
+
+  $('#effective-interval-hint').textContent = 'Efectivo: ' + i + ' s' + (f.elements.inherit_probeIntervalSeconds.checked ? ' (global)' : ' (personalizado)');
+  $('#effective-timeout-hint').textContent = 'Efectivo: ' + to + ' ms' + (f.elements.inherit_probeTimeoutMs.checked ? ' (global)' : ' (personalizado)');
+  $('#effective-failure-hint').textContent = 'Efectivo: ' + fail + ' sondeos' + (f.elements.inherit_failureThreshold.checked ? ' (global)' : ' (personalizado)');
+  $('#effective-recovery-hint').textContent = 'Efectivo: ' + rec + ' sondeos' + (f.elements.inherit_recoveryThreshold.checked ? ' (global)' : ' (personalizado)');
+
+  $('#route-detection-estimate').textContent = 'Estimación aproximada de detección: Caída: ' + estimateDetection(i, to, fail) + ' · Recuperación: ' + estimateDetection(i, to, rec);
+}
+
+for (const k of ['probeIntervalSeconds', 'probeTimeoutMs', 'failureThreshold', 'recoveryThreshold']) {
+  const f = $('#route-form');
+  f.elements['inherit_' + k].onchange = e => {
+    f.elements[k].disabled = e.target.checked;
+    if (e.target.checked) f.elements[k].value = '';
+    updateRouteMonitoringEstimate();
+  };
+  f.elements[k].oninput = updateRouteMonitoringEstimate;
+}
+
+$('#route-telegram-participation').onchange = updateRouteTelegramEstimate;
+$('#route-inherit-chatid').onchange = e => {
+  const f = $('#route-form');
+  f.elements.routeTelegramChatId.disabled = e.target.checked;
+  if (e.target.checked) f.elements.routeTelegramChatId.value = '';
+  updateRouteTelegramEstimate();
+};
+$('#route-telegram-chatid').oninput = updateRouteTelegramEstimate;
+
+let settingsBaseline = null;
+
+function openSettings() {
+  if (!globalSettings) {
+    notice('No se puede abrir ajustes: aún no se ha obtenido la configuración del servidor.');
+    return;
+  }
+  const f = $('#settings-form');
+  f.reset();
+  $('#settings-form-error').hidden = true;
+  const mon = globalSettings.monitoring || { probeIntervalSeconds: 30, probeTimeoutMs: 2000, failureThreshold: 3, recoveryThreshold: 2 };
+  f.elements.probeIntervalSeconds.value = mon.probeIntervalSeconds;
+  f.elements.probeTimeoutMs.value = mon.probeTimeoutMs;
+  f.elements.failureThreshold.value = mon.failureThreshold;
+  f.elements.recoveryThreshold.value = mon.recoveryThreshold;
+  updateSettingsEstimate();
+
+  const tel = globalSettings.telegram || { enabled: false, chatId: null, tokenConfigured: false };
+  f.elements.telegramEnabled.checked = Boolean(tel.enabled);
+  f.elements.telegramChatId.value = tel.chatId || '';
+  f.elements.telegramBotToken.value = '';
+  f.elements.clearTelegramToken.checked = false;
+  f.elements.telegramBotToken.disabled = false;
+
+  if (tel.tokenConfigured) {
+    $('#clear-telegram-token-label').hidden = false;
+    f.elements.telegramBotToken.placeholder = 'Token cifrado configurado (deja vacío para conservar)';
+    $('#settings-telegram-token-hint').textContent = '✔ Token actualmente configurado y cifrado con AES-256-GCM. Deja este campo vacío para conservarlo o escribe uno nuevo para reemplazarlo.';
+  } else {
+    $('#clear-telegram-token-label').hidden = true;
+    f.elements.telegramBotToken.placeholder = 'Ej. 123456789:ABCdefGhIJKlmNoPQRsTUVwxyZ';
+    $('#settings-telegram-token-hint').textContent = 'Ingresa el token de BotFather. Se almacenará cifrado con AES-256-GCM en base de datos.';
+  }
+  updateTelegramTokenStatus();
+
+  settingsBaseline = {
+    monitoring: {
+      probeIntervalSeconds: Number(mon.probeIntervalSeconds),
+      probeTimeoutMs: Number(mon.probeTimeoutMs),
+      failureThreshold: Number(mon.failureThreshold),
+      recoveryThreshold: Number(mon.recoveryThreshold)
+    },
+    telegram: {
+      enabled: Boolean(tel.enabled),
+      chatId: tel.chatId ? String(tel.chatId).trim() : null
+    }
+  };
+
+  $('#settings-dialog').showModal();
+}
+
+function updateTelegramTokenStatus() {
+  const tel = globalSettings?.telegram || { enabled: false, chatId: null, tokenConfigured: false };
+  const container = $('#settings-telegram-token-status');
+  if (tel.tokenConfigured) {
+    container.innerHTML = '<span class="badge good"><span class="dot"></span>Token de bot configurado</span> <span class="hint" style="margin-left:6px">(almacenado y cifrado con AES-256-GCM)</span>';
+  } else {
+    container.innerHTML = '<div class="message" role="alert" style="margin-top:6px;font-size:12px;padding:8px 12px;border-color:var(--amber);color:var(--amber);background:rgba(217,119,6,0.08)"><strong>Token no configurado:</strong> Ingresa el token del bot obtenido de <code>@BotFather</code> para habilitar el despacho de alertas y pruebas.</div>';
+  }
+}
+
+function updateSettingsEstimate() {
+  const f = $('#settings-form');
+  const i = Number(f.elements.probeIntervalSeconds.value) || 30;
+  const to = Number(f.elements.probeTimeoutMs.value) || 2000;
+  const fail = Number(f.elements.failureThreshold.value) || 3;
+  const rec = Number(f.elements.recoveryThreshold.value) || 2;
+  $('#settings-detection-estimate').textContent = 'Estimación global de detección: Caída: ' + estimateDetection(i, to, fail) + ' · Recuperación: ' + estimateDetection(i, to, rec);
+}
+
+for (const input of document.querySelectorAll('#settings-form input')) {
+  input.oninput = updateSettingsEstimate;
+}
+
+$('#open-settings-btn').onclick = openSettings;
+$('#close-settings-dialog').onclick = $('#cancel-settings-dialog').onclick = () => $('#settings-dialog').close();
+$('#settings-form').elements.clearTelegramToken.onchange = e => {
+  const f = $('#settings-form');
+  f.elements.telegramBotToken.disabled = e.target.checked;
+  if (e.target.checked) {
+    f.elements.telegramBotToken.value = '';
+    if (f.elements.telegramEnabled.checked) {
+      f.elements.telegramEnabled.checked = false;
+    }
+  }
+};
+
+$('#settings-form').onsubmit = async e => {
+  e.preventDefault();
+  const f = e.target;
+  const probeIntervalSeconds = Number(f.elements.probeIntervalSeconds.value);
+  const probeTimeoutMs = Number(f.elements.probeTimeoutMs.value);
+  const failureThreshold = Number(f.elements.failureThreshold.value);
+  const recoveryThreshold = Number(f.elements.recoveryThreshold.value);
+
+  const telEnabled = f.elements.telegramEnabled.checked;
+  const telChatId = f.elements.telegramChatId.value.trim() || null;
+  const tokenInput = f.elements.telegramBotToken.value.trim();
+  const clearToken = Boolean(f.elements.clearTelegramToken?.checked);
+  const tokenConfigured = Boolean(globalSettings?.telegram?.tokenConfigured);
+
+  const baseMon = settingsBaseline?.monitoring || {};
+  const monChanged = (
+    probeIntervalSeconds !== baseMon.probeIntervalSeconds ||
+    probeTimeoutMs !== baseMon.probeTimeoutMs ||
+    failureThreshold !== baseMon.failureThreshold ||
+    recoveryThreshold !== baseMon.recoveryThreshold
+  );
+
+  const baseTel = settingsBaseline?.telegram || {};
+  const telChanged = (
+    telEnabled !== Boolean(baseTel.enabled) ||
+    telChatId !== (baseTel.chatId || null) ||
+    tokenInput.length > 0 ||
+    clearToken
+  );
+
+  if (!monChanged && !telChanged) {
+    $('#settings-dialog').close();
+    return;
+  }
+
+  if (monChanged) {
+    if (probeTimeoutMs >= probeIntervalSeconds * 1000) {
+      $('#settings-form-error').textContent = 'El timeout de sondeo (' + probeTimeoutMs + ' ms) debe ser menor al intervalo de sondeo (' + probeIntervalSeconds + ' s = ' + (probeIntervalSeconds * 1000) + ' ms).';
+      $('#settings-form-error').hidden = false;
+      return;
+    }
+  }
+
+  if (tokenInput.length > 4096) {
+    $('#settings-form-error').textContent = 'El token del bot no debe superar los 4 096 caracteres.';
+    $('#settings-form-error').hidden = false;
+    f.elements.telegramBotToken.focus();
+    return;
+  }
+
+  if (telChanged && telEnabled) {
+    const hasActiveToken = (tokenConfigured && !clearToken) || tokenInput.length > 0;
+    if (!hasActiveToken) {
+      $('#settings-form-error').textContent = 'No se puede activar Telegram: ingresa un token de bot válido (obtenido de @BotFather) o conserva el existente.';
+      $('#settings-form-error').hidden = false;
+      f.elements.telegramBotToken.focus();
+      return;
+    }
+    if (!telChatId) {
+      $('#settings-form-error').textContent = 'No se puede activar Telegram: debes ingresar un Chat ID predeterminado.';
+      $('#settings-form-error').hidden = false;
+      f.elements.telegramChatId.focus();
+      return;
+    }
+  }
+
+  if (clearToken && telEnabled) {
+    $('#settings-form-error').textContent = 'No se puede eliminar el token del bot manteniendo las notificaciones activadas. Desactiva Telegram en esta misma solicitud.';
+    $('#settings-form-error').hidden = false;
+    return;
+  }
+
+  const button = f.querySelector('[type=submit]');
+  if (button.disabled) return;
+  loading(button, true);
+  try {
+    const payload = {};
+    if (monChanged) {
+      payload.monitoring = {
+        probeIntervalSeconds,
+        probeTimeoutMs,
+        failureThreshold,
+        recoveryThreshold
+      };
+    }
+    if (telChanged) {
+      payload.telegram = {
+        enabled: telEnabled,
+        chatId: telChatId
+      };
+      if (clearToken) {
+        payload.telegram.botToken = '';
+        payload.telegram.enabled = false;
+      } else if (tokenInput.length > 0) {
+        payload.telegram.botToken = tokenInput;
+      }
+    }
+    const res = await api('/settings', {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    });
+    if (res) {
+      globalSettings = { ...globalSettings, ...res };
+      f.elements.telegramBotToken.value = '';
+    }
+    $('#settings-dialog').close();
+    await refresh();
+  } catch (error) {
+    let msg = error.message;
+    if (error.body?.invalidRoutes?.length) {
+      msg = 'No se puede aplicar: el nuevo intervalo/timeout global invalida el timeout de los siguientes backends: ' + error.body.invalidRoutes.join(', ') + '. Modifica primero dichos backends o amplía el intervalo.';
+    }
+    $('#settings-form-error').textContent = msg;
+    $('#settings-form-error').hidden = false;
+  } finally {
+    loading(button, false);
+  }
+};
+
+$('#settings-dialog').addEventListener('close', () => {
+  const f = $('#settings-form');
+  if (f) {
+    f.elements.telegramBotToken.value = '';
+    f.elements.clearTelegramToken.checked = false;
+  }
+});
+
+$('#route-form').elements.clearKey.onchange = e => {
+  const f = $('#route-form');
+  f.elements.apiKey.disabled = e.target.checked;
+  if (e.target.checked) f.elements.apiKey.value = '';
+};
+
 $('#register').onclick = () => openEditor();
 $('#close-dialog').onclick = $('#cancel-dialog').onclick = () => $('#route-dialog').close();
+$('#route-dialog').addEventListener('close', () => {
+  const f = $('#route-form');
+  if (f) {
+    f.elements.apiKey.value = '';
+    f.elements.clearKey.checked = false;
+  }
+  editing = null;
+});
 $('#refresh').onclick = () => { refresh(); if (!$('#server-view').hidden) refreshHost(); };
 $('#logout').onclick = showLogin;
 
@@ -1513,8 +2255,9 @@ for (const button of document.querySelectorAll('#main-nav [data-tab]')) {
       if (el === button) el.setAttribute('aria-current', 'page');
       else el.removeAttribute('aria-current');
     }
-    for (const id of ['backends', 'incidents', 'logs', 'server-view']) $('#' + id).hidden = id !== button.dataset.tab;
+    for (const id of ['backends', 'incidents', 'logs', 'server-view', 'notifications']) $('#' + id).hidden = id !== button.dataset.tab;
     if (button.dataset.tab === 'server-view') { renderHost(); if (!hostData) refreshHost(); }
+    if (button.dataset.tab === 'notifications') fetchNotifications();
   };
 }
 
@@ -1524,9 +2267,19 @@ async function testConnection(route, button) {
   if (button.disabled) return;
   loading(button, true);
   let result;
-  try { result = await api('/routes/' + encodeURIComponent(route.id) + '/test', {method:'POST'}); }
-  catch (error) { result = {online:false,reason:error.message}; }
-  finally { loading(button, false); }
+  try {
+    result = await api('/routes/' + encodeURIComponent(route.id) + '/test', { method: 'POST' });
+  } catch (error) {
+    result = {
+      online: false,
+      httpStatus: error.status || 0,
+      reason: error.status === 409
+        ? 'Sondeo en curso: ya se está ejecutando una comprobación activa para este backend.'
+        : error.message
+    };
+  } finally {
+    loading(button, false);
+  }
   await refresh();
   probeToast(route, result);
 }
@@ -1560,9 +2313,73 @@ $('#route-form').onsubmit = async e => {
   const value = { enabled: f.elements.enabled.checked };
   for (const key of ['name', 'authUrl', 'aclUrl', 'healthUrl']) value[key] = f.elements[key].value.trim();
   for (const key of ['authPrefixes', 'aclPrefixes']) value[key] = f.elements[key].value.split(',').map(s => s.trim()).filter(Boolean);
-  if (!editing || f.elements.apiKey.value || f.elements.clearKey.checked) {
-    value.apiKey = f.elements.clearKey.checked ? '' : f.elements.apiKey.value;
+
+  // ponytail: contrato de secretos administrados: apiKey write-only; omitido conserva, "" elimina, no vacío establece/reemplaza
+  const keyInput = f.elements.apiKey.value;
+  if (keyInput) {
+    if (keyInput.length > 4096) {
+      $('#form-error').textContent = 'La clave API no debe superar los 4 096 caracteres.';
+      $('#form-error').hidden = false;
+      f.elements.apiKey.focus();
+      return;
+    }
+    if (/[\r\n\x00-\x1F\x7F]/.test(keyInput)) {
+      $('#form-error').textContent = 'La clave API contiene caracteres de control o saltos de línea inválidos para cabeceras HTTP.';
+      $('#form-error').hidden = false;
+      f.elements.apiKey.focus();
+      return;
+    }
   }
+
+  if (editing) {
+    if (f.elements.clearKey.checked) {
+      value.apiKey = ''; // Cadena vacía elimina explícitamente en el backend
+    } else if (keyInput.length > 0) {
+      value.apiKey = keyInput; // Reemplaza
+    }
+    // Si keyInput está vacío y no se marcó clearKey, se omite value.apiKey (el backend conserva la actual)
+  } else if (keyInput.length > 0) {
+    value.apiKey = keyInput;
+  }
+
+  // ponytail: contrato F2: overrides opcionales de monitoreo, herencia null y validación cruzada
+  const mon = {};
+  for (const k of ['probeIntervalSeconds', 'probeTimeoutMs', 'failureThreshold', 'recoveryThreshold']) {
+    if (f.elements['inherit_' + k].checked) {
+      mon[k] = null;
+    } else {
+      const num = Number(f.elements[k].value);
+      if (!Number.isFinite(num) || num <= 0) {
+        $('#form-error').textContent = 'Ingresa un valor numérico válido para ' + k + ' o marca «Usar global».';
+        $('#form-error').hidden = false;
+        f.elements[k].focus();
+        return;
+      }
+      mon[k] = num;
+    }
+  }
+
+  const gm = globalSettings?.monitoring || { probeIntervalSeconds: 30, probeTimeoutMs: 2000, failureThreshold: 3, recoveryThreshold: 2 };
+  const effI = mon.probeIntervalSeconds != null ? mon.probeIntervalSeconds : gm.probeIntervalSeconds;
+  const effTo = mon.probeTimeoutMs != null ? mon.probeTimeoutMs : gm.probeTimeoutMs;
+  if (effTo >= effI * 1000) {
+    $('#form-error').textContent = 'El timeout de sondeo (' + effTo + ' ms) debe ser menor al intervalo (' + effI + ' s = ' + (effI * 1000) + ' ms).';
+    $('#form-error').hidden = false;
+    return;
+  }
+  value.monitoring = mon;
+
+  // ponytail: contrato F3: overrides opcionales de Telegram y herencia
+  const part = f.elements.routeTelegramParticipation.value;
+  const telEnabled = part === 'inherit' ? null : (part === 'true');
+  const inheritChat = f.elements.inherit_telegramChatId.checked;
+  const customChat = f.elements.routeTelegramChatId.value.trim();
+  const telChat = inheritChat ? null : (customChat || null);
+  value.telegram = {
+    enabled: telEnabled,
+    chatId: telChat
+  };
+
   const button = f.querySelector('[type=submit]');
   if (button.disabled) return;
   loading(button, true);
@@ -1571,6 +2388,7 @@ $('#route-form').onsubmit = async e => {
       method: editing ? 'PUT' : 'POST',
       body: JSON.stringify(value)
     });
+    f.elements.apiKey.value = '';
     $('#route-dialog').close();
   } catch (error) {
     $('#form-error').textContent = error.message;
@@ -1633,6 +2451,210 @@ $('#login-form').onsubmit = async e => {
 };
 
 
+/* ponytail: Notificaciones Telegram F3 */
+async function fetchNotifications() {
+  if (!loggedIn) return;
+  try {
+    const res = await api('/notifications?limit=' + notifLimit + '&offset=' + notifOffset);
+    notifications = res?.items || [];
+    notifTotal = Number.isFinite(res?.total) ? res.total : notifications.length;
+    notifSummary = res?.summary || null;
+    $('#notification-count').textContent = notifTotal;
+    renderNotifications();
+  } catch (e) {
+    $('#notification-rows').innerHTML = '<tr><td colspan="7" class="empty">No se pudo cargar el historial de notificaciones: ' + esc(e.message) + '</td></tr>';
+  }
+}
+
+function renderNotifications() {
+  if (!notifSummary) {
+    $('#notif-sum-queue').textContent = '—';
+    $('#notif-sum-sent').textContent = '—';
+    $('#notif-sum-failed').textContent = '—';
+    $('#notif-sum-oldest').textContent = '—';
+  } else {
+    const queue = (notifSummary.pending || 0) + (notifSummary.sending || 0);
+    const sent = notifSummary.sent || 0;
+    const failed = (notifSummary.failed || 0) + (notifSummary.expired || 0) + (notifSummary.cancelled || 0);
+    const notEnq = notifSummary.notEnqueued || notifSummary.not_enqueued || 0;
+    $('#notif-sum-queue').textContent = queue + (notifSummary.sending ? ' (' + notifSummary.sending + ' en envío)' : '');
+    $('#notif-sum-sent').textContent = sent;
+    $('#notif-sum-failed').textContent = failed + (notEnq ? ' (' + notEnq + ' descartadas)' : '');
+    if (notifSummary.oldestPendingAt) {
+      $('#notif-sum-oldest').textContent = date(notifSummary.oldestPendingAt);
+      $('#notif-sum-oldest').title = 'Pendiente más antiguo en cola';
+    } else {
+      $('#notif-sum-oldest').textContent = 'Sin cola acumulada';
+      $('#notif-sum-oldest').title = '';
+    }
+  }
+
+  const notifRows = notifications.map(n => {
+    let typeBadge = '';
+    if (n.type === 'incident.opened') typeBadge = '<span class="badge bad"><span class="dot"></span>Corte</span>';
+    else if (n.type === 'incident.recovered') typeBadge = '<span class="badge good"><span class="dot"></span>Recuperado</span>';
+    else if (n.type === 'test') typeBadge = '<span class="badge neutral"><span class="dot"></span>Prueba</span>';
+    else typeBadge = '<span class="badge neutral">' + esc(n.type) + '</span>';
+
+    let statusBadge = '';
+    switch (n.status) {
+      case 'sent': statusBadge = '<span class="badge good"><span class="dot"></span>Enviado</span>'; break;
+      case 'sending': statusBadge = '<span class="badge warn"><span class="dot"></span>Enviando…</span>'; break;
+      case 'pending': statusBadge = '<span class="badge warn"><span class="dot"></span>En cola</span>'; break;
+      case 'failed': statusBadge = '<span class="badge bad"><span class="dot"></span>Fallido</span>'; break;
+      case 'expired': statusBadge = '<span class="badge bad"><span class="dot"></span>Expirado</span>'; break;
+      case 'cancelled': statusBadge = '<span class="badge neutral"><span class="dot"></span>Cancelado</span>'; break;
+      case 'not_enqueued':
+      case 'notEnqueued': statusBadge = '<span class="badge bad"><span class="dot"></span>No encolado</span>'; break;
+      default: statusBadge = '<span class="badge neutral">' + esc(n.status) + '</span>';
+    }
+
+    const beName = routes.find(r => r.id === n.backendId)?.name || n.backendId || 'Global';
+    const targetInfo = n.incidentId
+      ? esc(beName) + '<br><span class="hint technical" style="font-size:11px">Inc: ' + esc(n.incidentId) + '</span>'
+      : esc(beName);
+
+    let detailTxt = '—';
+    if (n.lastError) {
+      detailTxt = '<span class="hint" style="color:var(--red-light);overflow-wrap:anywhere" title="' + esc(n.lastError) + '">' + esc(n.lastError) + '</span>';
+    } else if (n.sentAt) {
+      detailTxt = '<span class="hint">Entregado: ' + esc(date(n.sentAt)) + '</span>';
+    } else if (n.nextAttemptAt) {
+      detailTxt = '<span class="hint">Reintento: ' + esc(date(n.nextAttemptAt)) + '</span>';
+    }
+
+    return '<tr>' +
+      '<td class="technical">' + esc(date(n.createdAt)) + '</td>' +
+      '<td>' + typeBadge + '</td>' +
+      '<td>' + targetInfo + '</td>' +
+      '<td class="technical">' + esc(n.chatId || '—') + '</td>' +
+      '<td>' + statusBadge + '</td>' +
+      '<td class="technical">' + (n.attempts || 0) + '</td>' +
+      '<td>' + detailTxt + '</td>' +
+      '</tr>';
+  }).join('');
+
+  $('#notification-rows').innerHTML = notifRows || '<tr><td colspan="7" class="empty">No hay notificaciones registradas.</td></tr>';
+
+  const curPage = Math.floor(notifOffset / notifLimit) + 1;
+  const totalPages = Math.max(1, Math.ceil(notifTotal / notifLimit));
+  const startItem = notifTotal === 0 ? 0 : notifOffset + 1;
+  const endItem = Math.min(notifTotal, notifOffset + notifications.length);
+
+  $('#notifications-pages').innerHTML =
+    '<span class="page-info" aria-live="polite">Página ' + curPage + ' de ' + totalPages + ' (' + startItem + '–' + endItem + ' de ' + notifTotal + ' notificaciones)</span>' +
+    '<button type="button" id="notif-prev-page" ' + (notifOffset === 0 ? 'disabled' : '') + '>Anterior</button>' +
+    '<button type="button" id="notif-next-page" ' + (notifOffset + notifLimit >= notifTotal ? 'disabled' : '') + '>Siguiente</button>';
+
+  $('#notif-prev-page').onclick = () => {
+    notifOffset = Math.max(0, notifOffset - notifLimit);
+    fetchNotifications();
+  };
+  $('#notif-next-page').onclick = () => {
+    notifOffset += notifLimit;
+    fetchNotifications();
+  };
+}
+
+function openTestNotification() {
+  const f = $('#test-notification-form');
+  f.reset();
+  $('#test-notif-error').hidden = true;
+
+  const gt = globalSettings?.telegram;
+  const globalChat = gt?.chatId || '';
+  const hasGlobal = Boolean(gt?.enabled && globalChat && gt?.tokenConfigured);
+
+  let selected = false;
+  const opts = [];
+
+  if (hasGlobal) {
+    opts.push('<option value="" selected>Destino global (' + (globalChat ? 'Chat ID: ' + esc(globalChat) : 'Sin Chat ID') + ')</option>');
+    selected = true;
+  } else {
+    opts.push('<option value="" disabled>Destino global (' + (globalChat ? 'Chat ID: ' + esc(globalChat) : 'Sin Chat ID') + ') [No disponible]</option>');
+  }
+
+  for (const r of routes) {
+    const eff = getEffectiveTelegram(r);
+    const isRouteActive = r.enabled !== false;
+    const isTargetReady = Boolean(isRouteActive && eff.enabled && eff.chatId && gt?.tokenConfigured);
+    const reasonTag = !isRouteActive ? ' [Pausado]' : isTargetReady ? '' : ' [No disponible]';
+    const isSelected = !selected && isTargetReady;
+    if (isSelected) selected = true;
+    opts.push('<option value="' + esc(r.id) + '" ' + (isTargetReady ? '' : 'disabled') + (isSelected ? ' selected' : '') + '>' + esc(r.name) + ' (' + (eff.chatId ? 'Chat ID: ' + esc(eff.chatId) : 'Sin Chat ID') + ')' + reasonTag + '</option>');
+  }
+
+  $('#test-notif-target').innerHTML = opts.join('');
+
+  const hasAnyValid = Boolean((gt?.enabled && globalChat && gt?.tokenConfigured) || routes.some(r => {
+    if (r.enabled === false) return false;
+    const eff = getEffectiveTelegram(r);
+    return Boolean(eff.enabled && eff.chatId && gt?.tokenConfigured);
+  }));
+
+  if (!gt?.tokenConfigured) {
+    $('#test-notif-status').innerHTML = '<span class="badge bad"><span class="dot"></span>Token no configurado</span><br><span style="color:var(--amber)">Falta configurar el token del bot en Ajustes globales. Las alertas están suspendidas.</span>';
+    $('#submit-test-notif').disabled = true;
+  } else if (!hasAnyValid) {
+    $('#test-notif-status').innerHTML = '<span class="badge warn"><span class="dot"></span>Sin canales activos</span><br>Para realizar pruebas, activa Telegram y define un Chat ID válido (en Ajustes globales o en un backend activo).';
+    $('#submit-test-notif').disabled = true;
+  } else {
+    $('#test-notif-status').innerHTML = '<span class="badge good"><span class="dot"></span>Listo para encolar</span><br>Se encolará un mensaje de prueba al Chat ID configurado para su envío en segundo plano.';
+    $('#submit-test-notif').disabled = false;
+  }
+
+  $('#test-notification-dialog').showModal();
+}
+
+$('#open-test-notification').onclick = openTestNotification;
+$('#close-test-notif-dialog').onclick = $('#cancel-test-notif-dialog').onclick = () => $('#test-notification-dialog').close();
+$('#refresh-notifications').onclick = fetchNotifications;
+
+$('#test-notification-form').onsubmit = async e => {
+  e.preventDefault();
+  const button = $('#submit-test-notif');
+  if (button.disabled) return;
+
+  const targetSelect = $('#test-notif-target');
+  const selOpt = targetSelect.selectedOptions?.[0];
+  if (selOpt && selOpt.disabled) {
+    $('#test-notif-error').textContent = 'El destino seleccionado no está disponible para pruebas.';
+    $('#test-notif-error').hidden = false;
+    return;
+  }
+
+  loading(button, true);
+  $('#test-notif-error').hidden = true;
+  const beId = targetSelect.value;
+  const payload = beId ? { backendId: beId } : {};
+
+  try {
+    const res = await api('/notifications/test', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+    $('#test-notification-dialog').close();
+    const notifId = res?.id || '—';
+    const notEnqueued = res?.status === 'not_enqueued';
+    probeToast({ name: 'Prueba Telegram' }, {
+      isNotificationTest: true,
+      status: res?.status,
+      online: !notEnqueued,
+      reason: notEnqueued
+        ? 'No encolada por cola llena: se ha alcanzado la capacidad máxima de 10 000 notificaciones (ID: ' + notifId + ').'
+        : 'Notificación de prueba encolada (ID: ' + notifId + '). El envío se realizará en segundo plano.'
+    });
+    await fetchNotifications();
+    setTimeout(fetchNotifications, 1500);
+  } catch (err) {
+    $('#test-notif-error').textContent = err.message || 'Error al solicitar prueba';
+    $('#test-notif-error').hidden = false;
+  } finally {
+    loading(button, false);
+  }
+};
+
 window.addEventListener('message', async e => {
   const tokenCandidate = e.data?.token || e.data?.gatewayToken || e.data?.emqxToken;
   if (e.origin !== location.origin || e.source !== window.parent || typeof tokenCandidate !== 'string') return;
@@ -1672,7 +2694,7 @@ function connectStream() {
       try {
         const payload = JSON.parse(event.data);
         if (payload) {
-          if (payload.routes || payload.metrics) {
+          if (payload.routes || payload.metrics || payload.settings) {
             applySnapshot(payload);
           }
           if (payload.server) {

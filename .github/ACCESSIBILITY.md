@@ -18,7 +18,7 @@ In addition, we design command-line tools and console outputs (`scripts/smoke.py
 - **Focus Visibility:** Focus indicators are preserved across interactive buttons, form inputs, and links so keyboard users can track their position.
 - **Color Contrast:** Text, buttons, badges (such as health probe statuses `allow`, `deny`, `ignore`), and chart legends are chosen to meet or exceed contrast ratios of 4.5:1 for normal text and 3:1 for large text or graphical UI components. Status is never communicated by color alone; text labels and distinct icons or shapes are provided alongside colors.
 - **Responsive Layout & Zoom:** The administrative UI supports responsive scaling, working on both desktop and mobile viewports, and reflows gracefully up to 200% browser zoom without breaking usability.
-- **Alternative Text Formats:** Documentation at `/gateway/docs` supports content negotiation (`Accept: text/markdown` and `/gateway/docs.md`) as well as dedicated files ([`docs/llms.txt`](docs/llms.txt)), allowing screen readers and automated tools to ingest clean, distraction-free markdown text.
+- **Alternative Text Formats:** Documentation at `/gateway/docs` supports content negotiation (`Accept: text/markdown` and `/gateway/docs.md`) as well as dedicated files ([`docs/llms.txt`](../docs/llms.txt)), allowing screen readers and automated tools to ingest clean, distraction-free markdown text.
 
 ## Known Limitations & Planned Enhancements
 

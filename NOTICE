@@ -10,6 +10,9 @@ Componentes incluidos en el repositorio:
 - @kurkle/color 0.3.2, incluido en Chart.js: MIT; licenses/kurkle-color-MIT.txt.
 - Apache Maven Wrapper 3.3.4: Apache-2.0; licenses/Apache-2.0.txt y
   licenses/Maven-Wrapper-NOTICE.txt.
+- SQLite JDBC Driver 3.54.1.0 (org.xerial:sqlite-jdbc): Apache-2.0 y
+  BSD 2-Clause (código de David Crawshaw); licenses/Apache-2.0.txt y
+  licenses/sqlite-jdbc-BSD.txt. Incluye código nativo de SQLite (Dominio Público).
 
 Se conservan los avisos originales dentro de los archivos de terceros.
 Las dependencias descargadas durante la compilación conservan sus propias

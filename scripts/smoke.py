@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 """Pruebas aisladas de autenticación y adaptadores; JVM o nativo."""
+import contextlib
 import http.server
 import json
 import os
 import pathlib
+import shutil
+import socket
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -60,21 +64,79 @@ class Backend(http.server.BaseHTTPRequestHandler):
         return self.reply(code, value)
 
 server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Backend)
-threading.Thread(target=server.serve_forever, daemon=True).start()
+server_thread = threading.Thread(target=server.serve_forever, daemon=True)
+server_thread.start()
+
+def shutdown_server():
+    global server, server_thread
+    if server:
+        try:
+            server.shutdown()
+        except Exception:
+            pass
+        try:
+            server.server_close()
+        except Exception:
+            pass
+    if server_thread and server_thread.is_alive():
+        try:
+            server_thread.join(timeout=2)
+        except Exception:
+            pass
+
 temporary = tempfile.TemporaryDirectory(prefix="smoke-", dir=root / "target")
 data = pathlib.Path(temporary.name) / "data"
+
+def get_free_port():
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(("127.0.0.1", 0))
+        return s.getsockname()[1]
+
+smoke_port = int(os.environ.get("GATEWAY_SMOKE_HTTP_PORT") or 0)
+if smoke_port == 0 or smoke_port == 18085:
+    smoke_port = get_free_port()
+
+base_url = f"http://127.0.0.1:{smoke_port}"
+os.environ["GATEWAY_SMOKE_HTTP_PORT"] = str(smoke_port)
+os.environ["GATEWAY_BASE_URL"] = base_url
+
 config = (root / "src/main/resources/application.yml").read_text()
-config = config.replace("port: 8085", "port: 18085")
-config = config.replace("${EMQX_BACKEND_API_KEY:}", "smoke-backend-api-key")
-config = config.replace("gateway:\n", f"gateway:\n  data-dir: {data}\n  emqx-url: http://127.0.0.1:{server.server_port}\n  probe-seconds: 1\n")
+config = config.replace("port: 8085", f"port: {smoke_port}")
+config = config.replace("${GATEWAY_DATA_DIR:data}", data.as_posix())
+config = config.replace("${EMQX_BACKEND_API_KEY_ENV:}", "EMQX_BACKEND_API_KEY")
+monitoring_fixture = f"""gateway:
+  emqx-url: http://127.0.0.1:{server.server_port}
+  probe-seconds: 1
+  monitoring:
+    probe-interval-seconds: 1
+    probe-timeout-ms: 500
+    failure-threshold: 1
+    recovery-threshold: 1
+"""
+config = config.replace("gateway:\n", monitoring_fixture)
 for port in (8090, 8091, 8080):
     config = config.replace(f"127.0.0.1:{port}/", f"127.0.0.1:{server.server_port}/{port}/")
 config_file = pathlib.Path(temporary.name) / "application.yml"
 config_file.write_text(config)
-command = sys.argv[1:] or ["java", "-jar", "target/quarkus-app/quarkus-run.jar"]
-command.insert(1, "-Dquarkus.config.locations=" + str(config_file))
+def get_java_executable():
+    if "JAVA_HOME" in os.environ:
+        cand = pathlib.Path(os.environ["JAVA_HOME"]) / "bin" / ("java.exe" if os.name == "nt" else "java")
+        if cand.exists():
+            return str(cand)
+    which_java = shutil.which("java")
+    if which_java:
+        return which_java
+    return "java"
+
+java_cmd = [get_java_executable()]
+command = sys.argv[1:] or (java_cmd + ["-jar", "target/quarkus-app/quarkus-run.jar"])
+command.insert(1, "-Dquarkus.config.locations=" + config_file.resolve().as_uri())
+MASTER_KEY_FIXTURE = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
 env = dict(os.environ, GATEWAY_ADMIN_AUTH_PROVIDER="internal",
-           GATEWAY_ADMIN_USERNAME="admin", GATEWAY_ADMIN_PASSWORD="test-password")
+           GATEWAY_ADMIN_USERNAME="admin", GATEWAY_ADMIN_PASSWORD="test-password",
+           GATEWAY_DATA_DIR=data.as_posix(),
+           GATEWAY_MASTER_KEY=MASTER_KEY_FIXTURE,
+           EMQX_BACKEND_API_KEY="smoke-backend-api-key")
 log = (root / "target/smoke.log").open("w")
 process = None
 
@@ -88,7 +150,7 @@ def request(path, method="GET", value=None, token="session", expected=200, passw
         token = admin_token
     if token:
         headers["Authorization"] = "Bearer " + token
-    req = urllib.request.Request("http://127.0.0.1:18085" + path, data=body, headers=headers, method=method)
+    req = urllib.request.Request(base_url + path, data=body, headers=headers, method=method)
     try:
         response = urllib.request.urlopen(req, timeout=8)
     except urllib.error.HTTPError as error:
@@ -108,11 +170,13 @@ def start():
     process = subprocess.Popen(command, cwd=root, stdout=log, stderr=log, env=env)
     for _ in range(150):
         if process.poll() is not None:
-            raise RuntimeError((root / "target/smoke.log").read_text())
+            raise RuntimeError((root / "target/smoke.log").read_text(encoding="utf-8", errors="replace"))
         try:
-            request("/q/health")
-            return
-        except (OSError, AssertionError):
+            req = urllib.request.Request(base_url + "/q/health")
+            with urllib.request.urlopen(req, timeout=1) as resp:
+                if resp.status == 200:
+                    return
+        except (OSError, AssertionError, urllib.error.URLError):
             time.sleep(.1)
     raise RuntimeError("Gateway did not start")
 
@@ -150,11 +214,16 @@ try:
     assert login_count == 0
     assert request("/api/admin/auth/verify", "POST") == {"valid": True}
     assert request("/api/admin/auth/verify") == {"valid": True}
+    # Configurar fixture smoke F2: intervalo 1s, timeout sondeo 500ms, umbrales 1/1 para preservar flow determinista
+    try:
+        request("/api/admin/settings", "PUT", {"monitoring": {"probeIntervalSeconds": 1, "probeTimeoutMs": 500, "failureThreshold": 1, "recoveryThreshold": 1}})
+    except Exception:
+        pass
     before = verify_count
     routes = request("/api/admin/routes")
     assert verify_count == before and len(routes) == 3
-    assert "apiKey" not in json.dumps(routes) and routes[0]["hasApiKey"]
-    with urllib.request.urlopen("http://127.0.0.1:18085/gateway/") as page:
+    assert all("apiKey" not in r for r in routes) and routes[0]["hasApiKey"]
+    with urllib.request.urlopen(f"{base_url}/gateway/") as page:
         assert page.headers.get("X-Frame-Options") == "SAMEORIGIN"
         html = page.read().decode()
         assert ("Panel de MQTT Gateway" in html or "Panel de Gateway" in html) and "<dialog" in html
@@ -209,7 +278,7 @@ try:
     request("/api/v1/gateway/mosquitto/acl", "POST", {"topic": "ping", "acc": 99}, expected=400)
     import urllib.parse
     form = urllib.parse.urlencode({"clientid": "core_form", "username": "u+ &", "password": "p&+="}).encode()
-    req = urllib.request.Request("http://127.0.0.1:18085/api/v1/gateway/mosquitto/auth", data=form, headers={"Content-Type": "application/x-www-form-urlencoded"})
+    req = urllib.request.Request(f"{base_url}/api/v1/gateway/mosquitto/auth", data=form, headers={"Content-Type": "application/x-www-form-urlencoded"})
     with urllib.request.urlopen(req) as response:
         assert response.status == 200
     assert received[-1][1]["password"] == "p&+=" and received[-1][1]["username"] == "u+ &"
@@ -225,7 +294,13 @@ try:
     dynamic = {"name": "Smoke dynamic", "enabled": True, "authPrefixes": ["dyn_"],
                "aclPrefixes": ["dynamic/"], "authUrl": f"http://127.0.0.1:{server.server_port}/dynamic/auth",
                "aclUrl": f"http://127.0.0.1:{server.server_port}/dynamic/acl",
-               "healthUrl": f"http://127.0.0.1:{server.server_port}/health", "apiKey": "dynamic-key"}
+               "healthUrl": f"http://127.0.0.1:{server.server_port}/health",
+               "apiKey": "dynamic-key"}
+    # apiKeyEnv no vacío DEBE ser rechazado con 400
+    request("/api/admin/routes", "POST", dict(dynamic, apiKeyEnv="SOME_VAR"), expected=400)
+    # apiKey=null DEBE ser rechazado con 400
+    request("/api/admin/routes", "POST", dict(dynamic, apiKey=None), expected=400)
+    # Crear ruta válida con apiKey write-only
     created = request("/api/admin/routes", "POST", dynamic, expected=201)
     rid = created["id"]
     for path in ("/api/admin/routes/" + rid, "/api/admin/routes?id=" + rid):
@@ -234,15 +309,19 @@ try:
             assert response["error"] == "Contraseña de confirmación incorrecta"
         assert any(r["id"] == rid for r in request("/api/admin/routes"))
     assert request("/api/admin/auth/verify") == {"valid": True}
-    assert "apiKey" not in created and created["hasApiKey"]
+    assert "apiKey" not in created and created["hasApiKey"] is True and "apiKeyEnv" not in created
     assert post("auth", {"clientid": "dyn_test"})["result"] == "allow"
+    assert received[-1][2] == "dynamic-key"
     assert post("acl", {"topic": "dynamic/test"})["result"] == "allow"
+    # Cadena vacía en apiKey elimina el secreto
     created["apiKey"] = ""
     request("/api/admin/routes/" + rid, "PUT", created)
     assert post("auth", {"clientid": "dyn_test"})["result"] == "deny"
     assert received[-1][2] is None
+    # Restaurar apiKey
     created["apiKey"] = "dynamic-key"
     request("/api/admin/routes/" + rid, "PUT", created)
+    # Omitir apiKey en edición conserva la referencia previa
     del created["apiKey"]
     created["enabled"] = False
     request("/api/admin/routes/" + rid, "PUT", created)
@@ -250,8 +329,10 @@ try:
     created["enabled"] = True
     request("/api/admin/routes", "PUT", created)
     assert post("auth", {"clientid": "dyn_test"})["result"] == "allow"
+    assert received[-1][2] == "dynamic-key"
     request("/api/admin/routes", "POST", dict(dynamic, authUrl="file:///etc/passwd"), expected=400)
     request("/api/admin/routes", "POST", dynamic, expected=400)
+    wait_for(lambda: not next(m for m in request("/api/admin/metrics") if m["id"] == rid)["awaitingObservation"])
     post("auth", {"clientid": "dyn_test", "test_mode": "delay"})
     m = next(m for m in request("/api/admin/metrics") if m["id"] == rid)
     assert m["status"] == "Degraded" and m["currentMs"] >= 200
@@ -271,6 +352,7 @@ try:
     created["enabled"] = True
     request("/api/admin/routes/" + rid, "PUT", created)
     request("/api/admin/routes/" + rid + "/test", "POST")
+    wait_for(lambda: any(i["backendId"] == rid and not i["endedAt"] for i in request("/api/admin/incidents")))
     health_mode = "up"
     wait_for(lambda: any(i["backendId"] == rid and i.get("endReason") == "Recovered" and i["durationMs"] > 0 for i in request("/api/admin/incidents")))
     wait_for(lambda: any(m["id"] == rid and m["uptimePercent"] is not None for m in request("/api/admin/metrics")))
@@ -279,9 +361,23 @@ try:
     events = request("/api/admin/logs")
     assert len(events) >= 200 and events[0]["client"] == "audit-204"
     assert "never-log-this" not in json.dumps(events) and "dynamic-key" not in json.dumps(events)
-    assert any(r["id"] == rid for r in json.loads((data / "routes.json").read_text()))
-    assert (data / "routes.json").stat().st_mode & 0o777 == 0o600
-    assert json.loads((data / "incidents.json").read_text())
+    import sqlite3
+    db_file = data / "gateway.db"
+    assert db_file.exists()
+    # Esperar que los incidentes asincronos hayan sido confirmados en memoria/API
+    wait_for(lambda: any(i["backendId"] == rid for i in request("/api/admin/incidents")))
+    time.sleep(0.3)
+    with contextlib.closing(sqlite3.connect(db_file)) as conn:
+        wal = conn.execute("PRAGMA journal_mode;").fetchone()[0]
+        assert wal.lower() == "wal"
+        migrations = conn.execute("SELECT version, name, checksum FROM schema_migrations;").fetchall()
+        assert len(migrations) >= 1 and migrations[0][0] == 1
+        # Comprobar que ninguna tabla de la base de datos contiene secretos
+        tables = [r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table';").fetchall()]
+        all_db_text = " ".join(str(row) for t in tables for row in conn.execute(f"SELECT * FROM {t};").fetchall())
+        assert "dynamic-key" not in all_db_text and "smoke-backend-api-key" not in all_db_text
+        incidents_rows = conn.execute("SELECT * FROM incidents WHERE backend_id = ?;", (rid,)).fetchall()
+        assert len(incidents_rows) > 0
     stop()
     old_token = admin_token
     start()
@@ -311,9 +407,9 @@ try:
     request("/api/admin/routes?id=" + confirmation["id"], "DELETE", expected=403, password="bad")
     request("/api/admin/routes?id=" + confirmation["id"], "DELETE", expected=204, password="test-password")
     if os.environ.get("UI_SMOKE") == "1":
-        subprocess.run(["node", "scripts/ui-smoke.cjs"], cwd=root, check=True)
-    server.shutdown()
-    server.server_close()
+        ui_env = dict(os.environ, GATEWAY_BASE_URL=base_url, GATEWAY_SMOKE_HTTP_PORT=str(smoke_port))
+        subprocess.run(["node", "scripts/ui-smoke.cjs"], cwd=root, env=ui_env, check=True)
+    shutdown_server()
     assert post("auth", {"clientid": "core_test"}) == {"result": "deny"}
     request("/api/admin/metrics", expected=503)
     stop()
@@ -322,9 +418,12 @@ try:
     admin_token = login()["token"]
     assert request("/api/admin/metrics")
     assert request("/api/admin/auth/verify") == {"valid": True}
-    print("CORRECTO: confirmación de eliminación interna y EMQX, autenticación interna sin EMQX, tokens aleatorios y reinicio, delegación EMQX, cuatro adaptadores allow/deny/ignore, formularios, suscripciones múltiples, auditoría, CRUD, claves, latencias, sondeos, incidentes y persistencia")
+    ready_resp = request("/q/health/ready")
+    assert ready_resp["status"] == "UP"
+    assert any(c["name"] == "storage" and c["status"] == "UP" for c in ready_resp.get("checks", []))
+    print("CORRECTO: confirmación de eliminación interna y EMQX, autenticación interna sin EMQX, tokens aleatorios y reinicio, delegación EMQX, cuatro adaptadores allow/deny/ignore, formularios, suscripciones múltiples, auditoría, CRUD, claves, latencias, sondeos, incidentes, persistencia SQLite WAL y health ready")
 finally:
     stop()
-    server.server_close()
+    shutdown_server()
     log.close()
     temporary.cleanup()

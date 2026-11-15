@@ -14,6 +14,8 @@ jobs:
     # ponytail: un solo entorno Linux/JVM; ampliar a una matriz si se requiere soporte adicional.
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      GATEWAY_MASTER_KEY: "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
     steps:
       - uses: actions/checkout@v4
 
@@ -27,8 +29,23 @@ jobs:
         with:
           python-version: '3.13'
 
+      - name: Unit Tests
+        run: ./mvnw test -B -ntp
+
       - name: Build
         run: ./mvnw package -DskipTests -B -ntp
+
+      - name: SQLite and Phase 1 tests
+        run: python3 scripts/test_fase1_sqlite.py
+
+      - name: Monitoring and Phase 2 tests
+        run: python3 scripts/test_fase2_monitoring.py
+
+      - name: Telegram and Phase 3 tests
+        run: python3 scripts/test_fase3_telegram.py
+
+      - name: Managed Secrets and AES-256-GCM tests
+        run: python3 scripts/test_managed_secrets.py
 
       - name: Smoke tests
         run: python3 scripts/smoke.py
@@ -42,3 +59,49 @@ jobs:
       - name: Clean up Docker Compose
         if: always()
         run: docker compose down -v
+
+  native-linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      GATEWAY_MASTER_KEY: "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY="
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Build Native Binary in Container
+        run: ./mvnw package -Dnative -Dquarkus.native.container-build=true -DskipTests -B -ntp
+
+      - name: Ensure runner binary is executable
+        run: chmod +x target/mqtt-gateway-0.1.0-runner
+
+      - name: Native Smoke Tests
+        run: python3 scripts/smoke.py ./target/mqtt-gateway-0.1.0-runner
+
+      - name: Native Telegram & Outbox Phase 3 Tests
+        run: python3 scripts/test_fase3_telegram.py ./target/mqtt-gateway-0.1.0-runner
+
+      - name: Native Managed Secrets & GCM Tests
+        run: python3 scripts/test_managed_secrets.py ./target/mqtt-gateway-0.1.0-runner
+
+      - name: Native Linux Lifecycle & Migration Tests
+        run: python3 scripts/native_smoke_linux.py
+
+  publish:
+    name: Publish to GHCR
+    needs: [build-and-test, native-linux]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/docker-publish.yml
+    secrets: inherit
