@@ -11,7 +11,7 @@ services:
       retries: 12
 
   gateway:
-    image: mqtt-gateway:0.1.0
+    image: mqtt-gateway:0.2.0
     build: .
     environment:
       GATEWAY_ADMIN_AUTH_PROVIDER: internal

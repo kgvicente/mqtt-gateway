@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-15 (preliminar)
+
+- **Persistencia SQLite WAL (Fase 1):** Rutas editables, ajustes, incidentes y cola de notificaciones persistidos localmente; rutas activas y métricas recientes en memoria. Importación inicial de archivos legados y migraciones V1–V4 verificadas también en Linux nativo.
+- **Cambio de arranque:** `GATEWAY_MASTER_KEY` es obligatoria, formada por 32 bytes aleatorios codificados en Base64. Debe conservarse fuera del repositorio y respaldarse junto con los datos. SQLite tiene prioridad sobre el sembrado inicial de YAML en reinicios.
 - **Gestión de secretos administrados desde el panel (V4):** Claves API de backends y token de Telegram configurables directamente desde la interfaz web o API REST, almacenados cifrados con AES-256-GCM en SQLite mediante la clave maestra obligatoria `GATEWAY_MASTER_KEY` (32 bytes Base64).
 - **Contratos write-only de credenciales:** `routes.apiKey` y `settings.telegram.botToken` aceptan reemplazo o eliminación explícita sin retornar nunca secretos en respuestas, DOM ni logs; flags booleanas `hasApiKey` y `tokenConfigured` en consultas GET.
 - **Eliminación de variables de entorno individuales:** Sustitución de `apiKeyEnv` y `GATEWAY_TELEGRAM_BOT_TOKEN` por el modelo administrado unificado con migración transaccional única de datos legados.
@@ -20,7 +24,7 @@ Primera versión pública para evaluación y demostraciones locales.
 - Demo Docker Compose con gateway, backend y Mosquitto; inicialización idempotente.
 - Pruebas MQTT 5 de entrega de mensajes y rechazo de credenciales y permisos.
 - Distribución JVM con JRE/JDK 25; Dockerfile con ejecución sin root.
-- Código propio bajo GNU Affero General Public License v3.0 (AGPL-3.0) y opción de licenciamiento comercial; avisos de terceros conservados.
+- La etiqueta original v0.1.0 se publicó bajo PolyForm Noncommercial 1.0.0, según su archivo LICENSE. La licencia vigente de v0.2.0 es GNU AGPL-3.0; se conservan los avisos de terceros.
 
 La imagen validada de la demo usa Mosquitto 2.0.15 y el complemento archivado
 mosquitto-go-auth. Es una demo local sin TLS. EMQX y VerneMQ conservan validación

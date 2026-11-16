@@ -285,7 +285,7 @@ def run_benchmark_target(name, container_name, port, mock_port, runs=3, reqs_per
 def verify_artifacts():
     base_jar = root / "target" / "baseline-src" / "target" / "quarkus-app" / "quarkus-run.jar"
     f1_jar = root / "target" / "quarkus-app" / "quarkus-run.jar"
-    f1_runner = root / "target" / "mqtt-gateway-0.1.0-runner"
+    f1_runner = root / "target" / "mqtt-gateway-0.2.0-runner"
 
     for path, desc in [
         (base_jar, "Baseline HEAD quarkus-run.jar"),
@@ -372,7 +372,7 @@ gateway:
             "container": "perf-qa-nat",
             "volume": "perf-qa-vol-nat",
             "image": "python:3.13-slim",
-            "mount": f"{root.resolve().as_posix()}/target/mqtt-gateway-0.1.0-runner:/app/runner:ro",
+            "mount": f"{root.resolve().as_posix()}/target/mqtt-gateway-0.2.0-runner:/app/runner:ro",
             "cmd": ["/app/runner", "-Dquarkus.config.locations=file:///qa-config/application.yml"]
         }
     ]

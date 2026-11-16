@@ -16,12 +16,12 @@ Para la demo con un bróker real y contenedores, consulta [Docker Compose](https
 ./mvnw package
 python3 scripts/smoke.py
 ./mvnw package -Dnative -Dquarkus.native.container-build=true
-python3 scripts/smoke.py ./target/mqtt-gateway-0.1.0-runner
+python3 scripts/smoke.py ./target/mqtt-gateway-0.2.0-runner
 ```
 
 JDK 25 es necesario para compilar. Docker solo es necesario para la modalidad
 de compilación nativa en contenedor. Maven Wrapper descarga Maven.
-El ejecutable Linux queda en target/mqtt-gateway-0.1.0-runner.
+El ejecutable Linux queda en target/mqtt-gateway-0.2.0-runner.
 Si el ejecutable ya está en uso, renombrarlo antes de compilar para conservar
 el proceso activo y disponer de una copia de recuperación.
 
@@ -47,7 +47,7 @@ Pruebas de navegador opcionales, sin dependencias en producción:
 npm install --prefix target/browser --no-package-lock playwright@1.55.1
 target/browser/node_modules/.bin/playwright install chromium
 UI_SMOKE=1 python3 scripts/smoke.py
-UI_SMOKE=1 python3 scripts/smoke.py ./target/mqtt-gateway-0.1.0-runner
+UI_SMOKE=1 python3 scripts/smoke.py ./target/mqtt-gateway-0.2.0-runner
 ```
 
 Capturas de escritorio y móvil: target/admin-desktop.png y target/admin-mobile.png.

@@ -118,7 +118,7 @@ Para empezar de cero, este comando también elimina el volumen de la demo:
 docker compose --env-file "$master_env_path" down --volumes
 ```
 
-## Alcance de v0.1.0
+## Alcance de v0.2.0
 
 - La imagen del bróker/complemento está fijada por digest y contiene Mosquitto
   **2.0.15**. El proyecto original [mosquitto-go-auth](https://github.com/iegomez/mosquitto-go-auth)

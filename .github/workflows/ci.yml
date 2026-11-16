@@ -56,6 +56,18 @@ jobs:
       - name: MQTT integration tests
         run: docker compose --profile test run --rm mqtt-tests
 
+      - name: Package release distribution
+        run: python3 scripts/package_release.py
+
+      - name: Upload JVM distribution artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jvm-distribution
+          path: |
+            target/releases/*.zip
+            target/releases/SHA256SUMS
+          if-no-files-found: error
+
       - name: Clean up Docker Compose
         if: always()
         run: docker compose down -v
@@ -82,16 +94,16 @@ jobs:
         run: ./mvnw package -Dnative -Dquarkus.native.container-build=true -DskipTests -B -ntp
 
       - name: Ensure runner binary is executable
-        run: chmod +x target/mqtt-gateway-0.1.0-runner
+        run: chmod +x target/mqtt-gateway-0.2.0-runner
 
       - name: Native Smoke Tests
-        run: python3 scripts/smoke.py ./target/mqtt-gateway-0.1.0-runner
+        run: python3 scripts/smoke.py ./target/mqtt-gateway-0.2.0-runner
 
       - name: Native Telegram & Outbox Phase 3 Tests
-        run: python3 scripts/test_fase3_telegram.py ./target/mqtt-gateway-0.1.0-runner
+        run: python3 scripts/test_fase3_telegram.py ./target/mqtt-gateway-0.2.0-runner
 
       - name: Native Managed Secrets & GCM Tests
-        run: python3 scripts/test_managed_secrets.py ./target/mqtt-gateway-0.1.0-runner
+        run: python3 scripts/test_managed_secrets.py ./target/mqtt-gateway-0.2.0-runner
 
       - name: Native Linux Lifecycle & Migration Tests
         run: python3 scripts/native_smoke_linux.py

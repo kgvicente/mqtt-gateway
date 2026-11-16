@@ -14,7 +14,7 @@ import urllib.error
 import urllib.request
 
 root = pathlib.Path(__file__).resolve().parents[1]
-runner_bin = root / "target/mqtt-gateway-0.1.0-runner"
+runner_bin = root / "target/mqtt-gateway-0.2.0-runner"
 if not runner_bin.exists():
     sys.exit(f"ERROR: No se encontró el binario nativo en {runner_bin}")
 

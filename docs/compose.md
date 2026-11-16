@@ -116,7 +116,7 @@ For a fresh demonstration, the following command also removes that demo volume:
 docker compose --env-file "$master_env_path" down --volumes
 ```
 
-## Scope of v0.1.0
+## Scope of v0.2.0
 
 - The demo pins the broker/plugin image by digest. It contains Mosquitto **2.0.15**.
   Its upstream [mosquitto-go-auth project](https://github.com/iegomez/mosquitto-go-auth)
